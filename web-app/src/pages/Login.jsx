@@ -1,10 +1,23 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Leaf, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
 const Login = () => {
   const [activeTab, setActiveTab] = useState('society');
   const [showPassword, setShowPassword] = useState(false);
+
+  const navigate = useNavigate();
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (activeTab === 'org') {
+      navigate('/org-portal');
+    } else if (activeTab === 'admin') {
+      navigate('/admin');
+    } else {
+      navigate('/dashboard');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-light-green/20 flex flex-col items-center justify-center p-4">
@@ -50,19 +63,30 @@ const Login = () => {
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
             )}
           </button>
+          <button
+            onClick={() => setActiveTab('admin')}
+            className={`flex-1 pb-3 text-sm font-semibold transition-all relative ${
+              activeTab === 'admin' ? 'text-primary' : 'text-neutral-gray hover:text-neutral-dark'
+            }`}
+          >
+            City Admin
+            {activeTab === 'admin' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
+            )}
+          </button>
         </div>
 
         <div className="text-center mb-6">
           <h2 className="text-xl font-bold text-neutral-dark">
-            {activeTab === 'society' ? 'Society Login' : 'Partner Portal'}
+            {activeTab === 'society' ? 'Society Login' : activeTab === 'org' ? 'Partner Portal' : 'Admin Console'}
           </h2>
           <p className="text-sm text-neutral-gray mt-1">
-            Access your {activeTab === 'society' ? 'society' : 'organization'} dashboard
+            Access your {activeTab === 'society' ? 'society' : activeTab === 'org' ? 'organization' : 'city admin'} dashboard
           </p>
         </div>
 
         {/* Form */}
-        <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+        <form className="space-y-5" onSubmit={handleLogin}>
           <div>
             <label className="block text-sm font-medium text-neutral-dark mb-1.5 ml-1">Email Address</label>
             <input 
@@ -97,11 +121,17 @@ const Login = () => {
             Login
           </button>
           
-          <Link to="/dashboard" className="block w-full text-center mt-3">
-            <button type="button" className="w-full border-2 border-primary/20 hover:border-primary text-primary py-3 rounded-full font-bold transition-all bg-primary/5 hover:bg-primary/10">
-              Go to Dashboard (Demo)
-            </button>
-          </Link>
+          <button 
+            type="button" 
+            onClick={() => {
+              if (activeTab === 'org') navigate('/org-portal');
+              else if (activeTab === 'admin') navigate('/admin');
+              else navigate('/dashboard');
+            }}
+            className="w-full border-2 border-primary/20 hover:border-primary text-primary py-3 rounded-full font-bold transition-all bg-primary/5 hover:bg-primary/10 mt-3"
+          >
+            Go to Dashboard (Demo)
+          </button>
         </form>
 
         {/* Divider */}
