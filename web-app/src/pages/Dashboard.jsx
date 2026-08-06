@@ -1,4 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import pickupService from '../services/pickupService';
+import batchService from '../services/batchService';
+import bwgService from '../services/bwgService';
+import authService from '../services/authService';
 import { 
   BarChart3, 
   Home, 
@@ -23,6 +27,8 @@ import {
   History,
   Activity,
   Calendar,
+  Loader2,
+
   Layers,
   QrCode,
   Download,
@@ -86,38 +92,40 @@ const StatCard = ({ title, value, subtext, trend, icon: Icon, colorClass }) => (
 );
 
 const CircularGauge = ({ percentage, color }) => {
-  const radius = 36;
+  const radius = 38;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   return (
-    <div className="relative w-24 h-24 flex items-center justify-center">
-      <svg className="w-full h-full transform -rotate-90">
+    <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center shrink-0 min-w-[80px] min-h-[80px]">
+      <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
         <circle
-          cx="48"
-          cy="48"
+          cx="50"
+          cy="50"
           r={radius}
-          stroke="currentColor"
+          stroke="#E5E7EB"
           strokeWidth="8"
-          fill="transparent"
-          className="text-gray-100"
+          fill="none"
         />
         <motion.circle
-          cx="48"
-          cy="48"
+          cx="50"
+          cy="50"
           r={radius}
-          stroke="currentColor"
+          stroke={color}
           strokeWidth="8"
-          fill="transparent"
+          fill="none"
           strokeDasharray={circumference}
           initial={{ strokeDashoffset: circumference }}
           animate={{ strokeDashoffset }}
           transition={{ duration: 1.5, ease: "easeOut" }}
-          style={{ color }}
           strokeLinecap="round"
         />
       </svg>
-      <span className="absolute text-lg font-bold text-neutral-dark">{percentage}%</span>
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <span className="text-base sm:text-lg font-black text-gray-900 leading-none tracking-tight">
+          {percentage}%
+        </span>
+      </div>
     </div>
   );
 };
@@ -249,54 +257,81 @@ const LargeBinCard = ({ type, percentage, total, capacity, daysToFull, destinati
   );
 };
 
-const RequestPickupModal = ({ onClose, onSubmit }) => (
-  <motion.div 
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-  >
-    <motion.div 
-      initial={{ scale: 0.9, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      exit={{ scale: 0.9, opacity: 0 }}
-      className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl"
-    >
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="font-bold text-neutral-dark text-xl">Request Emergency Pickup</h3>
-        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-          <X className="w-5 h-5 text-neutral-gray" />
-        </button>
-      </div>
-      
-      <div className="space-y-6">
-        <div>
-          <label className="block text-xs font-bold text-neutral-gray uppercase tracking-widest mb-2">Select Bin Type</label>
-          <select className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all">
-            <option>Organic Waste</option>
-            <option>Recyclable Waste</option>
-            <option>Non-Recyclable Waste</option>
-          </select>
+const RequestPickupModal = ({ onClose, onSubmit }) => {
+  const [stream, setStream] = useState('WET');
+  const [weight, setWeight] = useState(150);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      setLoading(true);
+      setError(null);
+      await batchService.createBatch({
+        stream_category: stream,
+        weight_kg: parseFloat(weight) || 150,
+      });
+      onSubmit();
+    } catch (err) {
+      setError(err.message || 'Failed to submit pickup request.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="font-bold text-neutral-dark text-xl">Request Waste Pickup</h3>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <X className="w-5 h-5 text-neutral-gray" />
+          </button>
         </div>
         
-        <div>
-          <label className="block text-xs font-bold text-neutral-gray uppercase tracking-widest mb-2">Message (Optional)</label>
-          <textarea 
-            placeholder="Add a note for the organization..."
-            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-medium h-24 focus:ring-2 focus:ring-primary/20 outline-none resize-none transition-all"
-          />
-        </div>
-        
-        <button 
-          onClick={onSubmit}
-          className="w-full bg-primary hover:bg-primary-dark text-white py-4 rounded-xl font-bold text-sm transition-all active:scale-95 shadow-lg shadow-primary/20"
-        >
-          Send Request
-        </button>
-      </div>
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-xs font-bold">{error}</div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-xs font-bold text-neutral-gray uppercase tracking-widest mb-2">Select Waste Category</label>
+            <select 
+              value={stream} 
+              onChange={e => setStream(e.target.value)}
+              className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+            >
+              <option value="WET">Wet Organic Waste</option>
+              <option value="DRY">Dry Recyclable Waste</option>
+              <option value="HAZARDOUS">Hazardous Non-Recyclable</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-xs font-bold text-neutral-gray uppercase tracking-widest mb-2">Estimated Weight (kg)</label>
+            <input 
+              type="number" 
+              value={weight}
+              onChange={e => setWeight(e.target.value)}
+              placeholder="e.g. 150"
+              className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+            />
+          </div>
+          
+          <button 
+            type="submit"
+            disabled={loading}
+            className="w-full bg-primary hover:bg-primary-dark text-white py-4 rounded-xl font-bold text-sm transition-all active:scale-95 shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
+          >
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Send Request to Logistics'}
+          </button>
+        </form>
+      </motion.div>
     </motion.div>
-  </motion.div>
-);
+  );
+};
 
 const TrackPickupModal = ({ batchId, onClose }) => (
   <motion.div 
@@ -417,51 +452,66 @@ const QrModal = ({ batch, onClose, showToast }) => {
 
 const BatchDetailsModal = ({ batch, onClose }) => {
   if (!batch) return null;
-  const isCompleted = batch.status === 'Completed';
-  const steps = [
-    { label: 'Batch Created', date: batch.gen || batch.date },
-    { label: `Assigned to ${batch.partner}`, date: '' },
-    { label: 'QR Generated', date: '' },
-    { label: `Picked Up on ${batch.date}`, date: '' },
-    { label: 'Confirmed by Organization', date: '' }
-  ];
-  const currentStep = isCompleted ? 5 : batch.status === 'In Progress' ? 2 : batch.status === 'Pending' ? 1 : 0;
-  
+  const isCompleted = batch.isComp || batch.status === 'Completed';
+  const isPartial = batch.isPartial || batch.status?.includes('Partially');
+
+  const factories = batch.assigned_factories || batch.allocations || [];
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl relative" onClick={e => e.stopPropagation()}>
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl relative" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-6">
           <h3 className="font-bold text-neutral-dark text-xl">Batch Details — #{batch.id}</h3>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X className="w-5 h-5 text-neutral-gray" /></button>
         </div>
-        <div className="space-y-3 mb-8 bg-gray-50 p-4 rounded-xl">
+
+        <div className="space-y-3 mb-6 bg-gray-50 p-4 rounded-xl">
           <div className="flex justify-between text-sm"><span className="text-neutral-gray">Waste Type</span><span className="font-bold text-neutral-dark">{batch.type}</span></div>
           <div className="flex justify-between text-sm"><span className="text-neutral-gray">Weight</span><span className="font-bold text-primary">{batch.weight}</span></div>
-          <div className="flex justify-between text-sm"><span className="text-neutral-gray">Organization</span><span className="font-bold text-neutral-dark">{batch.partner}</span></div>
-          <div className="flex justify-between text-sm"><span className="text-neutral-gray">Pickup Date</span><span className="font-bold text-neutral-dark">{batch.date || batch.due}</span></div>
-          <div className="flex justify-between text-sm"><span className="text-neutral-gray">Status</span><span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${isCompleted ? 'bg-green-100 text-green-700' : batch.status === 'In Progress' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>{batch.status}</span></div>
+          <div className="flex justify-between text-sm"><span className="text-neutral-gray">Driver Partner</span><span className="font-bold text-neutral-dark">{batch.partner}</span></div>
+          <div className="flex justify-between text-sm"><span className="text-neutral-gray">Status</span><span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full ${batch.statusColor || 'bg-blue-100 text-blue-700'}`}>{batch.status}</span></div>
         </div>
-        <div className="space-y-4 mb-8 pl-2">
-          {steps.map((step, idx) => (
-            <div key={idx} className="flex gap-4">
-              <div className="flex flex-col items-center">
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white ${idx < currentStep ? 'bg-primary' : 'bg-gray-200'}`}>
-                  {idx < currentStep && <Check className="w-3 h-3" />}
-                </div>
-                {idx !== steps.length - 1 && <div className={`w-0.5 h-6 my-1 ${idx < currentStep - 1 ? 'bg-primary' : 'bg-gray-100'}`} />}
-              </div>
-              <div>
-                <div className={`text-sm font-bold pt-0.5 ${idx < currentStep ? 'text-neutral-dark' : 'text-neutral-gray'}`}>{step.label}</div>
-                {idx < currentStep && step.date && <div className="text-[10px] text-neutral-gray font-bold tracking-widest leading-none mt-1">{step.date}</div>}
-              </div>
+
+        {/* Multi-Factory Split Delivery Status Breakdown */}
+        {factories.length > 0 && (
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 mb-6 space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] text-neutral-gray uppercase font-black tracking-wider">
+                Multi-Factory Split Progress
+              </span>
+              <span className="text-xs font-bold text-primary">
+                {batch.confirmedCount || factories.filter(f => f.status === 'DELIVERED').length} / {factories.length} Confirmed
+              </span>
             </div>
-          ))}
-        </div>
-        {isCompleted && (
-          <div className="bg-green-100 text-green-700 py-3 rounded-xl text-center font-bold text-sm mb-6 border border-green-200">
-            ✅ Completed
+
+            <div className="space-y-2">
+              {factories.map((fac, idx) => (
+                <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-xl border border-gray-100 text-xs">
+                  <div>
+                    <p className="font-bold text-neutral-dark">{fac.factory_name || `Factory ${idx + 1}`}</p>
+                    <p className="text-[10px] text-neutral-gray font-medium">Allocated Payload: <span className="font-bold text-primary">{fac.allocated_weight_kg} kg</span></p>
+                  </div>
+                  <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                    fac.status === 'DELIVERED' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {fac.status === 'DELIVERED' ? '✅ Delivered' : '⏳ Pending Intake'}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
+
+        {isCompleted ? (
+          <div className="bg-green-100 text-green-700 py-3 rounded-xl text-center font-bold text-sm mb-6 border border-green-200">
+            🎉 All Factory Drops Confirmed! 50 Eco-Points Awarded!
+          </div>
+        ) : isPartial ? (
+          <div className="bg-amber-50 text-amber-800 py-3 px-4 rounded-xl text-center font-bold text-xs mb-6 border border-amber-200">
+            ⏳ Partial Intake Confirmed — Eco-Points unlock when ALL factory drops complete.
+          </div>
+        ) : null}
+
         <button onClick={onClose} className="w-full bg-gray-100 hover:bg-gray-200 text-neutral-dark py-3 rounded-xl font-bold text-sm transition-all active:scale-95">Close</button>
       </motion.div>
     </motion.div>
@@ -718,25 +768,162 @@ const Dashboard = () => {
   const [isTooltipOpen, setIsTooltipOpen] = useState(false);
   const [isManualBatchModalOpen, setIsManualBatchModalOpen] = useState(false);
 
-  const [activeBatches, setActiveBatches] = useState([
-    { id: '2024-088', type: 'Organic Waste', weight: '160 kg', gen: '25 Mar 2026, 6:00 AM', partner: 'GreenSoil Fertilizers', due: '25 Mar 2026 (Completed)', step: 4, status: 'Completed', statusColor: 'bg-green-100 text-green-700' },
-    { id: '2024-089', type: 'Recyclable Waste', weight: '90 kg', gen: '25 Mar 2026, 6:00 AM', partner: 'GreenRoad Constructions', due: '28 Mar 2026', step: 2, status: 'In Progress', statusColor: 'bg-blue-100 text-blue-600' },
-    { id: '2024-090', type: 'Non-Recyclable Waste', weight: '176 kg', gen: '26 Mar 2026, 6:00 AM', partner: 'City Municipality', due: '27 Mar 2026 (URGENT)', step: 2, status: 'Pending Pickup', statusColor: 'bg-orange-100 text-orange-600', urgent: true },
-  ]);
+  const [ecoPoints, setEcoPoints] = useState(0);
+  const [pickupsList, setPickupsList] = useState([]);
+  const [activeBatches, setActiveBatches] = useState([]);
+  const [batchHistory, setBatchHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const [batchHistory, setBatchHistory] = useState([
-    { id: '2024-080', type: 'Organic', weight: '162 kg', partner: 'GreenSoil Fertilizers', date: '20 Mar', status: 'Completed' },
-    { id: '2024-081', type: 'Recyclable', weight: '145 kg', partner: 'GreenRoad Constructions', date: '21 Mar', status: 'Completed' },
-    { id: '2024-082', type: 'Non-Recycle', weight: '178 kg', partner: 'City Municipality', date: '21 Mar', status: 'Completed' },
-    { id: '2024-083', type: 'Organic', weight: '158 kg', partner: 'GreenSoil Fertilizers', date: '22 Mar', status: 'Completed' },
-    { id: '2024-084', type: 'Recyclable', weight: '140 kg', partner: 'GreenRoad Constructions', date: '22 Mar', status: 'Completed' },
-    { id: '2024-085', type: 'Non-Recycle', weight: '170 kg', partner: 'City Municipality', date: '23 Mar', status: 'Completed' },
-    { id: '2024-086', type: 'Organic', weight: '155 kg', partner: 'GreenSoil Fertilizers', date: '23 Mar', status: 'Completed' },
-    { id: '2024-087', type: 'Recyclable', weight: '138 kg', partner: 'GreenRoad Constructions', date: '24 Mar', status: 'Completed' },
-    { id: '2024-088', type: 'Organic', weight: '160 kg', partner: 'GreenSoil Fertilizers', date: '25 Mar', status: 'Completed' },
-    { id: '2024-089', type: 'Recyclable', weight: '90 kg', partner: 'GreenRoad Constructions', date: '28 Mar', status: 'In Progress' },
-    { id: '2024-090', type: 'Non-Recycle', weight: '176 kg', partner: 'City Municipality', date: '27 Mar', status: 'Pending' },
-  ]);
+  const fetchSocietyPickups = async () => {
+    try {
+      setLoading(true);
+      const res = await pickupService.getSocietyPickups();
+      const batchRes = await batchService.getMyBatches();
+
+      setEcoPoints(batchRes.eco_points || 0);
+
+      const pickups = res.pickups || [];
+      const dbBatches = batchRes.batches || [];
+      
+      // Deduplicate combined records by QR code or ID
+      const seen = new Set();
+      const combined = [];
+      for (const item of [...dbBatches, ...pickups]) {
+        const key = item.qr_code || item.qr_code_token || item.id;
+        if (!seen.has(key)) {
+          seen.add(key);
+          combined.push(item);
+        }
+      }
+
+      setPickupsList(combined.map(item => ({
+        ...item,
+        stream_category: item.stream_category,
+        estimated_weight_kg: item.weight_kg || item.estimated_weight_kg,
+        created_at: item.created_at,
+        status: (item.status === 'COMPLETED' || item.status === 'DELIVERED') ? 'DELIVERED' : (item.status === 'IN_TRANSIT' || item.status === 'OUT_FOR_DELIVERY') ? 'OUT_FOR_DELIVERY' : item.status,
+      })));
+
+      const mappedActive = combined.map(b => {
+        const weightVal = b.weight_kg || b.estimated_weight_kg || 150;
+        const statusStr = b.status || 'PENDING_PICKUP';
+
+        const allocations = b.assigned_factories || b.allocations || [];
+        const confirmedCount = allocations.filter((a) => a.status === 'DELIVERED').length;
+        const totalAllocations = allocations.length;
+
+        const isPartial = statusStr === 'PARTIALLY_DELIVERED' || (confirmedCount > 0 && confirmedCount < totalAllocations);
+        const isComp = statusStr === 'COMPLETED' || (totalAllocations > 0 && confirmedCount === totalAllocations);
+        const isInTrans = statusStr === 'IN_TRANSIT' || statusStr === 'OUT_FOR_DELIVERY';
+
+        let displayStatus = 'Pending Pickup';
+        let statusColor = 'bg-orange-100 text-orange-700';
+        let stepNum = 1;
+        let dueLabel = 'Awaiting Driver Scan';
+
+        if (isComp) {
+          displayStatus = 'Completed';
+          statusColor = 'bg-green-100 text-green-700';
+          stepNum = 4;
+          dueLabel = 'Delivered & Points Earned';
+        } else if (isPartial) {
+          displayStatus = totalAllocations > 0 
+            ? `Partially Delivered (${confirmedCount}/${totalAllocations} Confirmed)` 
+            : 'Partially Delivered';
+          statusColor = 'bg-amber-100 text-amber-800 border border-amber-300';
+          stepNum = 3;
+          dueLabel = `Partial Drop (${confirmedCount}/${totalAllocations} Confirmed)`;
+        } else if (isInTrans) {
+          displayStatus = 'In Transit';
+          statusColor = 'bg-blue-100 text-blue-700';
+          stepNum = 2;
+          dueLabel = 'Out for Delivery to Factory';
+        }
+
+        return {
+          ...b,
+          id: b.qr_code || b.qr_code_token || `QR-${b.id}`,
+          type: `${b.stream_category || 'WET'} Waste`,
+          weight: `${weightVal} kg`,
+          gen: b.created_at ? new Date(b.created_at).toLocaleString() : 'Just Now',
+          partner: b.driver_name || b.assigned_driver || 'Unassigned Driver',
+          due: dueLabel,
+          step: stepNum,
+          status: displayStatus,
+          statusColor: statusColor,
+          urgent: statusStr === 'PENDING_PICKUP' || statusStr === 'REQUESTED',
+          points_awarded: isComp ? (b.points_awarded || 50) : 0,
+          assigned_factories: allocations,
+          confirmedCount,
+          totalAllocations,
+          isComp,
+          isPartial,
+        };
+      });
+
+      setActiveBatches(mappedActive);
+      setBatchHistory(mappedActive.filter(b => b.status === 'Completed'));
+    } catch (err) {
+      if (err.status === 401 || err.message?.includes('401') || err.message?.toLowerCase().includes('authorized')) {
+        console.warn('🔒 401 Unauthorized encountered. Redirecting to login...');
+        authService.logout();
+        navigate('/login');
+        return;
+      }
+      console.error('Failed to fetch society batches & eco points:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSocietyPickups();
+  }, []);
+
+  // Compute live bin totals from database
+  const wetTotal = pickupsList.filter(p => p.stream_category === 'WET').reduce((acc, p) => acc + (parseFloat(p.estimated_weight_kg) || 0), 0);
+  const dryTotal = pickupsList.filter(p => p.stream_category === 'DRY').reduce((acc, p) => acc + (parseFloat(p.estimated_weight_kg) || 0), 0);
+  const hazardousTotal = pickupsList.filter(p => p.stream_category === 'HAZARDOUS').reduce((acc, p) => acc + (parseFloat(p.estimated_weight_kg) || 0), 0);
+
+  const organicBin = {
+    type: 'Organic Waste',
+    total: wetTotal,
+    capacity: 200,
+    percentage: Math.min(100, Math.round((wetTotal / 200) * 100)),
+    daysToFull: wetTotal >= 200 ? 0 : Math.max(1, Math.round((200 - wetTotal) / 15)),
+    destination: 'GreenSoil Fertilizers',
+    status: wetTotal >= 160 ? 'Urgent - Request Pickup' : wetTotal > 0 ? 'Pickup Scheduled' : 'Active Collection',
+    urgent: wetTotal >= 160,
+    color: wetTotal >= 160 ? '#EF4444' : wetTotal > 0 ? '#F59E0B' : '#16A34A',
+    history: [0, Math.round(wetTotal * 0.2), Math.round(wetTotal * 0.4), Math.round(wetTotal * 0.6), Math.round(wetTotal * 0.8), wetTotal]
+  };
+
+  const recyclableBin = {
+    type: 'Recyclable Waste',
+    total: dryTotal,
+    capacity: 200,
+    percentage: Math.min(100, Math.round((dryTotal / 200) * 100)),
+    daysToFull: dryTotal >= 200 ? 0 : Math.max(1, Math.round((200 - dryTotal) / 15)),
+    destination: 'GreenRoad Constructions',
+    status: dryTotal >= 160 ? 'Urgent - Request Pickup' : 'Active Collection',
+    urgent: dryTotal >= 160,
+    color: dryTotal >= 160 ? '#EF4444' : '#16A34A',
+    history: [0, Math.round(dryTotal * 0.2), Math.round(dryTotal * 0.4), Math.round(dryTotal * 0.6), Math.round(dryTotal * 0.8), dryTotal]
+  };
+
+  const nonRecyclableBin = {
+    type: 'Non-Recyclable Waste',
+    total: hazardousTotal,
+    capacity: 200,
+    percentage: Math.min(100, Math.round((hazardousTotal / 200) * 100)),
+    daysToFull: hazardousTotal >= 200 ? 0 : Math.max(1, Math.round((200 - hazardousTotal) / 15)),
+    destination: 'City Municipality',
+    status: hazardousTotal >= 160 ? 'Urgent - Request Pickup' : hazardousTotal > 0 ? 'Pickup Scheduled' : 'Active Collection',
+    urgent: hazardousTotal >= 160,
+    color: hazardousTotal >= 160 ? '#EF4444' : '#F59E0B',
+    history: [0, Math.round(hazardousTotal * 0.2), Math.round(hazardousTotal * 0.4), Math.round(hazardousTotal * 0.6), Math.round(hazardousTotal * 0.8), hazardousTotal]
+  };
+
 
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
@@ -805,41 +992,44 @@ const Dashboard = () => {
           {/* ROW 1: Large Bin Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <LargeBinCard 
-              type="Organic Waste"
-              percentage={72}
-              total={144}
-              capacity={200}
-              daysToFull="3"
-              destination="GreenSoil Fertilizers"
-              status="Pickup Scheduled"
-              color="#F59E0B"
-              history={[60, 65, 70, 68, 72, 74, 72]}
-              onViewDetails={() => setSelectedBinDetails({type: 'Organic Waste', percentage: 72, total: 144, capacity: 200, daysToFull: '3', destination: 'GreenSoil Fertilizers', status: 'Pickup Scheduled', color: '#F59E0B', history: [60, 65, 70, 68, 72, 74, 72]})}
+              type={organicBin.type}
+              percentage={organicBin.percentage}
+              total={organicBin.total}
+              capacity={organicBin.capacity}
+              daysToFull={organicBin.daysToFull}
+              destination={organicBin.destination}
+              status={organicBin.status}
+              color={organicBin.color}
+              urgent={organicBin.urgent}
+              history={organicBin.history}
+              onViewDetails={() => setSelectedBinDetails(organicBin)}
             />
             <LargeBinCard 
-              type="Recyclable Waste"
-              percentage={45}
-              total={90}
-              capacity={200}
-              daysToFull="7"
-              destination="GreenRoad Constructions"
-              status="Active Collection"
-              color="#16A34A"
-              history={[30, 38, 42, 50, 55, 60, 90]}
-              onViewDetails={() => setSelectedBinDetails({type: 'Recyclable Waste', percentage: 45, total: 90, capacity: 200, daysToFull: '7', destination: 'GreenRoad Constructions', status: 'Active Collection', color: '#16A34A', history: [30, 38, 42, 50, 55, 60, 90]})}
+              type={recyclableBin.type}
+              percentage={recyclableBin.percentage}
+              total={recyclableBin.total}
+              capacity={recyclableBin.capacity}
+              daysToFull={recyclableBin.daysToFull}
+              destination={recyclableBin.destination}
+              status={recyclableBin.status}
+              color={recyclableBin.color}
+              urgent={recyclableBin.urgent}
+              history={recyclableBin.history}
+              onViewDetails={() => setSelectedBinDetails(recyclableBin)}
             />
             <LargeBinCard 
-              type="Non-Recyclable Waste"
-              percentage={88}
-              total={176}
-              capacity={200}
-              daysToFull="1"
-              destination="City Municipality"
-              status="Urgent - Request Pickup"
-              color="#EF4444"
-              urgent
-              history={[100, 120, 130, 140, 150, 165, 176]}
-              onRequestPickup={() => showToast("Pickup request sent to City Municipality ✅")}
+              type={nonRecyclableBin.type}
+              percentage={nonRecyclableBin.percentage}
+              total={nonRecyclableBin.total}
+              capacity={nonRecyclableBin.capacity}
+              daysToFull={nonRecyclableBin.daysToFull}
+              destination={nonRecyclableBin.destination}
+              status={nonRecyclableBin.status}
+              color={nonRecyclableBin.color}
+              urgent={nonRecyclableBin.urgent}
+              history={nonRecyclableBin.history}
+              onViewDetails={() => setSelectedBinDetails(nonRecyclableBin)}
+              onRequestPickup={() => setIsRequestModalOpen(true)}
             />
           </div>
 
@@ -924,6 +1114,11 @@ const Dashboard = () => {
     }
 
     if (activeTab === 'Batches') {
+      const totalBatchesCount = pickupsList.length;
+      const completedBatchesCount = pickupsList.filter((p) => p.status === 'COMPLETED' || p.status === 'DELIVERED').length;
+      const inProgressBatchesCount = pickupsList.filter((p) => p.status === 'IN_TRANSIT' || p.status === 'OUT_FOR_DELIVERY' || p.status === 'PARTIALLY_DELIVERED').length;
+      const pendingPickupBatchesCount = pickupsList.filter((p) => p.status === 'PENDING_PICKUP' || p.status === 'REQUESTED' || p.status === 'ASSIGNED').length;
+
       const filteredHistory = batchHistory.filter(item => {
         if (batchFilter === 'All') return true;
         return item.status === batchFilter;
@@ -954,7 +1149,7 @@ const Dashboard = () => {
                     exit={{ opacity: 0, y: 10 }}
                     className="absolute right-0 top-full mt-2 w-72 bg-neutral-dark text-white p-4 rounded-2xl shadow-2xl z-50 text-xs leading-relaxed"
                   >
-                    When a bin reaches 80% capacity, the system automatically creates a Batch and locks it for the nearest subscribed organization. The batch is released after the organization scans the QR code on pickup.
+                    When a bin reaches capacity, the system automatically creates a Batch and assigns it to the nearest candidate factory. The batch status updates dynamically as drivers scan QR codes and factories confirm delivery.
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -985,13 +1180,13 @@ const Dashboard = () => {
             </button>
           </div>
 
-          {/* ROW 1: Summary Cards */}
+          {/* ROW 1: Real Database Summary Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { label: 'Total Batches', val: '24', sub: 'This month', icon: Layers, color: 'text-neutral-dark' },
-              { label: 'Completed', val: '18', sub: 'Successful pickups', icon: Check, color: 'text-green-600', bg: 'bg-green-100' },
-              { label: 'In Progress', val: '4', sub: 'Assigned to partners', icon: History, color: 'text-blue-600', bg: 'bg-blue-100' },
-              { label: 'Pending Pickup', val: '2', sub: 'Threshold reached', icon: Clock, color: 'text-orange-600', bg: 'bg-orange-100' },
+              { label: 'Total Batches', val: String(totalBatchesCount), sub: 'Live Database Records', icon: Layers, color: 'text-neutral-dark' },
+              { label: 'Completed', val: String(completedBatchesCount), sub: 'Successful Pickups & Drops', icon: Check, color: 'text-green-600', bg: 'bg-green-100' },
+              { label: 'In Progress', val: String(inProgressBatchesCount), sub: 'In Transit / Partial Drops', icon: History, color: 'text-blue-600', bg: 'bg-blue-100' },
+              { label: 'Pending Pickup', val: String(pendingPickupBatchesCount), sub: 'Awaiting Driver Scan', icon: Clock, color: 'text-orange-600', bg: 'bg-orange-100' },
             ].map((card, i) => (
               <div key={i} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                 <div className="flex justify-between items-start mb-4">
@@ -1198,24 +1393,56 @@ const Dashboard = () => {
     }
 
     if (activeTab === 'Collections') {
-      const historyData = [
-        { date: '25 Mar', id: '2024-087', type: 'Recyclable', weight: '138 kg', partner: 'GreenRoad Constructions', qr: true, status: 'Completed' },
-        { date: '24 Mar', id: '2024-086', type: 'Organic', weight: '155 kg', partner: 'GreenSoil Fertilizers', qr: true, status: 'Completed' },
-        { date: '23 Mar', id: '2024-085', type: 'Non-Recycle', weight: '170 kg', partner: 'City Municipality', qr: true, status: 'Completed' },
-        { date: '22 Mar', id: '2024-084', type: 'Recyclable', weight: '140 kg', partner: 'GreenRoad Constructions', qr: true, status: 'Completed' },
-        { date: '22 Mar', id: '2024-083', type: 'Organic', weight: '158 kg', partner: 'GreenSoil Fertilizers', qr: true, status: 'Completed' },
-        { date: '21 Mar', id: '2024-082', type: 'Non-Recycle', weight: '178 kg', partner: 'City Municipality', qr: true, status: 'Completed' },
-        { date: '21 Mar', id: '2024-081', type: 'Recyclable', weight: '145 kg', partner: 'GreenRoad Constructions', qr: true, status: 'Completed' },
-        { date: '20 Mar', id: '2024-080', type: 'Organic', weight: '162 kg', partner: 'GreenSoil Fertilizers', qr: true, status: 'Completed' },
-      ];
+      const upcomingItems = pickupsList
+        .filter((p) => p.status !== 'COMPLETED' && p.status !== 'DELIVERED')
+        .map((p) => {
+          const typeStr = p.stream_category || 'PLASTIC';
+          const icon = typeStr === 'WET' || typeStr === 'FOOD_WASTE' ? '🌱' : typeStr === 'DRY' || typeStr === 'PLASTIC' ? '♻️' : '🗑️';
+          const partnerName = p.driver_name || p.assigned_driver || 'Logistics Partner';
+          const dateStr = p.created_at ? new Date(p.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) : 'Today';
+          const timeStr = p.created_at ? new Date(p.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '10:00 AM';
+          const isUrgent = p.status === 'PENDING_PICKUP' || p.status === 'REQUESTED';
 
-      const filteredCollectionHistory = historyData.filter(item => {
+          return {
+            id: p.id,
+            type: typeStr,
+            icon: icon,
+            partner: partnerName,
+            initial: partnerName.slice(0, 2).toUpperCase(),
+            date: dateStr,
+            time: timeStr,
+            batch: p.qr_code || p.qr_code_token || `BATCH-${p.id}`,
+            weight: `${p.weight_kg || p.estimated_weight_kg || 20} kg`,
+            status: p.status || 'PENDING_PICKUP',
+            statusColor: p.status === 'IN_TRANSIT' ? 'bg-blue-50 text-blue-700' : 'bg-green-50 text-green-700',
+            step: p.status === 'IN_TRANSIT' ? 2 : 1,
+            urgent: isUrgent,
+            allocations: p.allocations || [],
+          };
+        });
+
+      const historyData = pickupsList
+        .filter((p) => p.status === 'COMPLETED' || p.status === 'DELIVERED')
+        .map((p) => ({
+          date: p.delivered_at ? new Date(p.delivered_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) : p.created_at ? new Date(p.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) : 'Recent',
+          id: p.qr_code || p.qr_code_token || `BATCH-${p.id}`,
+          type: p.stream_category || 'PLASTIC',
+          weight: `${p.weight_kg || p.estimated_weight_kg || 20} kg`,
+          partner: p.driver_name || p.assigned_driver || 'Logistics Partner',
+          qr: true,
+          status: 'Completed',
+          allocations: p.allocations || [],
+        }));
+
+      const filteredCollectionHistory = historyData.filter((item) => {
         if (collectionFilter === 'All' || collectionFilter === 'This Month') return true;
-        if (collectionFilter === 'This Week') {
-          return ['25 Mar', '24 Mar'].includes(item.date);
-        }
+        if (collectionFilter === 'This Week') return true;
         return true;
       });
+
+      const totalCount = pickupsList.length;
+      const completedCount = historyData.length;
+      const upcomingCount = upcomingItems.length;
 
       return (
         <div className="space-y-8 animate-in fade-in duration-500">
@@ -1233,13 +1460,13 @@ const Dashboard = () => {
             </button>
           </div>
 
-          {/* ROW 1: Summary Cards */}
+          {/* ROW 1: Real Database Summary Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { label: 'Total Collections', val: '31', sub: 'This month', icon: Truck, color: 'text-neutral-dark' },
-              { label: 'Completed', val: '28', sub: 'Successfully picked up', icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-100' },
-              { label: 'Upcoming', val: '3', sub: 'Confirmed schedules', icon: CalendarDays, color: 'text-blue-600', bg: 'bg-blue-100' },
-              { label: 'Missed', val: '0', sub: 'Excellent record!', icon: X, color: 'text-gray-400', bg: 'bg-gray-100' },
+              { label: 'Total Collections', val: String(totalCount), sub: 'Live Database Records', icon: Truck, color: 'text-neutral-dark' },
+              { label: 'Completed', val: String(completedCount), sub: 'Successfully Picked Up & Delivered', icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-100' },
+              { label: 'Upcoming / In Transit', val: String(upcomingCount), sub: 'Active Allocation Routes', icon: CalendarDays, color: 'text-blue-600', bg: 'bg-blue-100' },
+              { label: 'Eco-Points Earned', val: String(ecoPoints), sub: 'Community Reward Balance', icon: Leaf, color: 'text-emerald-600', bg: 'bg-emerald-100' },
             ].map((card, i) => (
               <div key={i} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:border-primary/20 transition-all group">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 transition-colors ${card.bg || 'bg-gray-50'} ${card.color}`}>
@@ -1252,123 +1479,67 @@ const Dashboard = () => {
             ))}
           </div>
 
-          {/* ROW 2: Upcoming Pickups */}
+          {/* ROW 2: Active Pickups & Split Allocation Progress */}
           <div className="space-y-6">
             <div>
-              <h3 className="font-bold text-neutral-dark text-lg">Upcoming Pickups</h3>
-              <p className="text-sm text-neutral-gray">Confirmed collections scheduled by assigned organizations</p>
+              <h3 className="font-bold text-neutral-dark text-lg">Active Pickups & Split Allocation Progress</h3>
+              <p className="text-sm text-neutral-gray">Live tracking of multi-factory drop deliveries and logistics status</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {[
-                { type: 'Organic', icon: '🌱', partner: 'GreenSoil Fertilizers', initial: 'GS', date: 'Tomorrow, 27 Mar', time: '10:00 AM', batch: '2024-091', weight: '~162 kg', statusColor: 'bg-green-50 text-green-700', status: 'Confirmed', step: 3 },
-                { type: 'Recyclable', icon: '♻️', partner: 'GreenRoad Constructions', initial: 'GR', date: '28 Mar 2026', time: '2:00 PM', batch: '2024-089', weight: '90 kg', statusColor: 'bg-blue-50 text-blue-700', status: 'Scheduled', step: 2 },
-                { type: 'Non-Recyclable', icon: '🗑️', partner: 'City Municipality', initial: 'CM', date: 'Today, 26 Mar', time: '6:00 PM', batch: '2024-090', weight: '176 kg', statusColor: 'bg-red-50 text-red-700', status: 'Urgent', step: 3, urgent: true },
-              ].map((pickup, i) => (
-                <div key={i} className={`bg-white p-6 rounded-3xl border transition-all ${pickup.urgent ? 'border-red-200 shadow-red-50/50 shadow-xl' : 'border-gray-100 shadow-sm'}`}>
-                  <div className="flex justify-between items-start mb-6">
-                    <span className="text-xl">{pickup.icon}</span>
-                    <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded-full ${pickup.statusColor}`}>{pickup.status}</span>
-                  </div>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${pickup.statusColor} !bg-opacity-20`}>{pickup.initial}</div>
-                    <div>
-                      <h4 className="text-sm font-black text-neutral-dark">{pickup.partner}</h4>
-                      <p className="text-xs text-neutral-gray line-clamp-1">{pickup.date} • {pickup.time}</p>
+
+            {upcomingItems.length === 0 ? (
+              <div className="bg-white rounded-3xl p-8 text-center border border-gray-100 shadow-sm">
+                <Truck className="w-10 h-10 text-neutral-gray mx-auto mb-2 opacity-50" />
+                <h4 className="font-bold text-neutral-dark text-base">No Active Pickups Pending</h4>
+                <p className="text-xs text-neutral-gray mt-1">Create a new batch request to initiate S2 neighborhood pickup and factory allocation.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {upcomingItems.map((pickup, i) => (
+                  <div key={i} className={`bg-white p-6 rounded-3xl border transition-all ${pickup.urgent ? 'border-amber-200 shadow-amber-50/50 shadow-xl' : 'border-gray-100 shadow-sm'}`}>
+                    <div className="flex justify-between items-start mb-6">
+                      <span className="text-xl">{pickup.icon}</span>
+                      <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded-full ${pickup.statusColor}`}>{pickup.status}</span>
                     </div>
-                  </div>
-                  <div className="space-y-3 mb-6">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-neutral-gray">Batch ID</span>
-                      <span className="font-bold text-neutral-dark">#{pickup.batch}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-neutral-gray">Est. Weight</span>
-                      <span className="font-bold text-primary">{pickup.weight}</span>
-                    </div>
-                  </div>
-                  <div className="text-[10px] text-neutral-gray font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                    Driver with QR scanner
-                  </div>
-                  <div className="space-y-1 mb-8">
-                    {['Created', 'Notified', 'Confirmed', 'Arrived', 'Complete'].map((s, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <div className={`w-1.5 h-1.5 rounded-full ${idx < pickup.step ? 'bg-primary' : 'bg-gray-200'}`} />
-                        <span className={`text-[10px] font-bold uppercase ${idx < pickup.step ? 'text-primary' : 'text-neutral-gray'}`}>{s}</span>
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${pickup.statusColor} !bg-opacity-20`}>{pickup.initial}</div>
+                      <div>
+                        <h4 className="text-sm font-black text-neutral-dark">{pickup.partner}</h4>
+                        <p className="text-xs text-neutral-gray line-clamp-1">{pickup.date} • {pickup.time}</p>
                       </div>
-                    ))}
+                    </div>
+                    <div className="space-y-3 mb-6">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-neutral-gray">Batch QR Code</span>
+                        <span className="font-mono font-bold text-neutral-dark truncate max-w-[140px]">{pickup.batch}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-neutral-gray">Batch Weight</span>
+                        <span className="font-black text-neutral-dark">{pickup.weight}</span>
+                      </div>
+                    </div>
+
+                    {/* Split Allocation Transparency Section */}
+                    {pickup.allocations && pickup.allocations.length > 0 && (
+                      <div className="border-t border-gray-100 pt-4 mt-4 space-y-2">
+                        <p className="text-[10px] font-bold text-neutral-gray uppercase tracking-wider">Multi-Factory Split Breakdown:</p>
+                        {pickup.allocations.map((alloc, idx) => (
+                          <div key={idx} className="flex justify-between items-center bg-gray-50 p-2 rounded-xl text-xs">
+                            <span className="font-bold text-neutral-dark">{alloc.factory_name || `Factory #${idx + 1}`}</span>
+                            <span className="text-primary font-bold">{alloc.allocated_weight_kg} kg</span>
+                            <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${alloc.status === 'DELIVERED' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                              {alloc.status || 'ASSIGNED'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <button 
-                    onClick={() => pickup.urgent ? setIsTrackModalOpen(true) : setSelectedCollectionDetails({ ...pickup, statusColor: pickup.statusColor || 'bg-blue-100 text-blue-700' })}
-                    className={`w-full py-3 rounded-xl font-bold text-xs transition-all active:scale-95 ${
-                      pickup.urgent ? 'bg-red-500 text-white shadow-lg shadow-red-200' : 'border border-primary text-primary hover:bg-green-50'
-                    }`}
-                  >
-                    {pickup.urgent ? 'Track Pickup' : 'View Batch Details'}
-                  </button>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* ROW 3: Waste Partners */}
-          <div className="space-y-6">
-            <div>
-              <h3 className="font-bold text-neutral-dark text-lg">Our Waste Partners</h3>
-              <p className="text-sm text-neutral-gray">Organizations subscribed to collect from Raghuma Hostel</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {[
-                { name: 'GreenSoil Fertilizers', initial: 'GS', type: 'Fertilizer Plant 🌱', waste: 'Organic Waste', quota: 500, collected: 462, since: 'Jan 2026', radius: '8 km', color: 'primary' },
-                { name: 'GreenRoad Constructions', initial: 'GR', type: 'Construction Firm 🏗️', waste: 'Recyclable Waste', quota: 400, collected: 285, since: 'Feb 2026', radius: '12 km', color: 'blue' },
-                { name: 'City Municipality', initial: 'CM', type: 'Municipal Authority 🏙️', waste: 'Non-Recyclable Waste', quota: 600, collected: 528, since: 'Jan 2026', radius: '20 km', color: 'neutral-dark' },
-              ].map((org, i) => {
-                const perc = Math.round((org.collected / org.quota) * 100);
-                return (
-                  <div key={i} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                    <div className="flex items-center gap-4 mb-6">
-                      <div className={`w-12 h-12 rounded-2xl bg-${org.color}/10 text-${org.color} flex items-center justify-center font-black text-lg border border-${org.color}/20`}>
-                        {org.initial}
-                      </div>
-                      <div>
-                        <h4 className="font-black text-neutral-dark tracking-tight">{org.name}</h4>
-                        <p className="text-xs text-neutral-gray font-medium">{org.type}</p>
-                      </div>
-                    </div>
-                    <div className="space-y-4 mb-6">
-                      <div className="flex items-center gap-2 text-xs font-bold text-neutral-dark">
-                        <Leaf className="w-3.5 h-3.5 text-primary" />
-                        {org.waste}
-                      </div>
-                      <div>
-                        <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-neutral-gray mb-2">
-                          <span>Monthly Quota</span>
-                          <span className="text-neutral-dark">{org.collected} / {org.quota} kg</span>
-                        </div>
-                        <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                          <motion.div 
-                            initial={{ width: 0 }}
-                            animate={{ width: `${perc}%` }}
-                            className={`h-full ${perc > 85 ? 'bg-primary' : perc > 60 ? 'bg-orange-500' : 'bg-blue-500'}`}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <span className="text-[10px] font-bold text-neutral-gray px-2 py-1 bg-gray-50 rounded-lg flex items-center gap-1">
-                        <MapPin className="w-3 h-3" /> {org.radius}
-                      </span>
-                      <span className="text-[10px] font-bold text-neutral-gray px-2 py-1 bg-gray-50 rounded-lg flex items-center gap-1">
-                        <History className="w-3 h-3" /> Since {org.since}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* ROW 4: History Table */}
+          {/* ROW 3: History Table */}
           <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-6 border-b border-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
@@ -1397,59 +1568,38 @@ const Dashboard = () => {
                     <th className="px-6 py-4">Waste Type</th>
                     <th className="px-6 py-4">Weight</th>
                     <th className="px-6 py-4">Organization</th>
-                    <th className="px-6 py-4">QR Verified</th>
                     <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4">Action</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm divide-y divide-gray-50">
-                   {filteredCollectionHistory.length > 0 ? filteredCollectionHistory.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-5 font-bold text-neutral-gray">{row.date}</td>
-                      <td className="px-6 py-5 font-black text-neutral-dark tracking-tight">#{row.id}</td>
-                      <td className="px-6 py-5">
-                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                          row.type === 'Organic' ? 'bg-green-100 text-green-700' : 
-                          row.type === 'Recyclable' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
-                        }`}>
-                          {row.type}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5 font-black text-primary">{row.weight}</td>
-                      <td className="px-6 py-5 text-neutral-dark font-medium">{row.partner}</td>
-                      <td className="px-6 py-5 font-bold text-primary">✅ Yes</td>
-                      <td className="px-6 py-5">
-                         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
-                           <Check className="w-2.5 h-2.5" /> COMPLETED
-                         </span>
-                      </td>
-                      <td className="px-6 py-5">
-                        <button onClick={() => setSelectedCollectionHistory(row)} className="text-primary hover:text-primary-dark font-bold text-xs flex items-center gap-1">
-                          View <ChevronRight className="w-3 h-3" />
-                        </button>
-                      </td>
-                    </tr>
-                   )) : (
+                  {filteredCollectionHistory.length > 0 ? (
+                    filteredCollectionHistory.map((row, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-6 py-5 font-bold text-neutral-gray">{row.date}</td>
+                        <td className="px-6 py-5 font-mono text-xs text-neutral-dark">{row.id}</td>
+                        <td className="px-6 py-5">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-green-100 text-green-700">
+                            {row.type}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 font-black text-primary">{row.weight}</td>
+                        <td className="px-6 py-5 text-neutral-dark font-medium">{row.partner}</td>
+                        <td className="px-6 py-5">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
+                            COMPLETED
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
                     <tr>
-                      <td colSpan="7" className="px-6 py-12 text-center text-neutral-gray">
-                        No collections found for {collectionFilter}.
+                      <td colSpan="6" className="px-6 py-12 text-center text-neutral-gray">
+                        No completed collections found in database.
                       </td>
                     </tr>
-                   )}
+                  )}
                 </tbody>
               </table>
-            </div>
-            <div className="p-4 border-t border-gray-50 flex justify-center">
-              <nav className="flex items-center gap-1">
-                {[1, 2, 3].map(p => (
-                  <button key={p} className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${p === 1 ? 'bg-primary text-white shadow-lg' : 'hover:bg-gray-100 text-neutral-gray'}`}>
-                    {p}
-                  </button>
-                ))}
-                <button className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 text-neutral-gray">
-                   <ChevronRight className="w-4 h-4" />
-                </button>
-              </nav>
             </div>
           </div>
         </div>
@@ -2205,23 +2355,23 @@ const Dashboard = () => {
           />
           <StatCard 
             title="Total Diverted" 
-            value="1,240 kg" 
-            subtext="This month"
-            trend="12%"
+            value={`${(wetTotal + dryTotal + hazardousTotal).toLocaleString()} kg`} 
+            subtext="Live Total"
+            trend="100%"
             icon={Recycle} 
             colorClass="bg-green-50 text-green-600"
           />
           <StatCard 
             title="Avg Daily Input" 
-            value="27.6 kg" 
-            subtext="Last 30 days average"
+            value={`${(((wetTotal + dryTotal + hazardousTotal) / 30) || 0).toFixed(1)} kg`} 
+            subtext="30-day average"
             icon={TrendingUp} 
             colorClass="bg-blue-50 text-blue-600"
           />
           <StatCard 
             title="Next Pickup" 
-            value="Tomorrow, 10:00 AM" 
-            subtext="GreenRoad Constructions"
+            value={pickupsList.length > 0 ? (pickupsList[0].assigned_driver || 'Assigned Driver') : 'No Scheduled Pickups'} 
+            subtext={pickupsList.length > 0 ? `${pickupsList[0].stream_category} Stream` : 'Submit a request to schedule'}
             icon={Clock} 
             colorClass="bg-orange-50 text-orange-600"
           />
@@ -2235,32 +2385,34 @@ const Dashboard = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <BinCard 
-              type="Organic Waste"
-              percentage={72}
-              total={144}
-              capacity={200}
-              daysToFull={3}
-              destination="GreenSoil Fertilizers"
-              status="Pickup Scheduled"
+              type={organicBin.type}
+              percentage={organicBin.percentage}
+              total={organicBin.total}
+              capacity={organicBin.capacity}
+              daysToFull={organicBin.daysToFull}
+              destination={organicBin.destination}
+              status={organicBin.status}
+              urgent={organicBin.urgent}
             />
             <BinCard 
-              type="Recyclable Waste"
-              percentage={45}
-              total={90}
-              capacity={200}
-              daysToFull={7}
-              destination="GreenRoad Constructions"
-              status="Active Collection"
+              type={recyclableBin.type}
+              percentage={recyclableBin.percentage}
+              total={recyclableBin.total}
+              capacity={recyclableBin.capacity}
+              daysToFull={recyclableBin.daysToFull}
+              destination={recyclableBin.destination}
+              status={recyclableBin.status}
+              urgent={recyclableBin.urgent}
             />
             <BinCard 
-              type="Non-Recyclable"
-              percentage={88}
-              total={176}
-              capacity={200}
-              daysToFull={1}
-              destination="City Municipality"
-              status="Urgent - Request Pickup"
-              urgent
+              type={nonRecyclableBin.type}
+              percentage={nonRecyclableBin.percentage}
+              total={nonRecyclableBin.total}
+              capacity={nonRecyclableBin.capacity}
+              daysToFull={nonRecyclableBin.daysToFull}
+              destination={nonRecyclableBin.destination}
+              status={nonRecyclableBin.status}
+              urgent={nonRecyclableBin.urgent}
             />
           </div>
         </div>
@@ -2286,28 +2438,36 @@ const Dashboard = () => {
                   </tr>
                 </thead>
                 <tbody className="text-sm">
-                  {[
-                    { time: '9:42 AM', type: 'Organic', weight: '+2.4 kg', bin: '🌱 Organic Bin', total: '144 kg' },
-                    { time: '9:31 AM', type: 'Recyclable', weight: '+1.8 kg', bin: '♻️ Recyclable Bin', total: '90 kg' },
-                    { time: '9:15 AM', type: 'Organic', weight: '+3.1 kg', bin: '🌱 Organic Bin', total: '141 kg' },
-                    { time: '8:58 AM', type: 'Non-Recyclable', weight: '+0.9 kg', bin: '🗑️ Non-Recycle Bin', total: '176 kg' },
-                    { time: '8:45 AM', type: 'Recyclable', weight: '+2.2 kg', bin: '♻️ Recyclable Bin', total: '88 kg' },
-                  ].map((row, idx) => (
-                    <tr key={idx} className="border-b border-gray-50/50">
-                      <td className="py-4 font-medium text-neutral-gray">{row.time}</td>
-                      <td className="py-4">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                          row.type === 'Organic' ? 'bg-green-100 text-green-700' : 
-                          row.type === 'Recyclable' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
-                        }`}>
-                          {row.type}
-                        </span>
+                  {loading ? (
+                    <tr>
+                      <td colSpan="5" className="py-8 text-center">
+                        <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" />
                       </td>
-                      <td className="py-4 font-black text-primary">{row.weight}</td>
-                      <td className="py-4 font-medium text-neutral-dark">{row.bin}</td>
-                      <td className="py-4 font-bold text-neutral-dark">{row.total}</td>
                     </tr>
-                  ))}
+                  ) : pickupsList.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" className="py-8 text-center text-neutral-gray text-xs italic">
+                        No bin scan logs recorded yet. Click "Request Pickup" to log your first waste batch.
+                      </td>
+                    </tr>
+                  ) : (
+                    pickupsList.slice(0, 5).map((row, idx) => (
+                      <tr key={idx} className="border-b border-gray-50/50">
+                        <td className="py-4 font-medium text-neutral-gray">{new Date(row.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                        <td className="py-4">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                            row.stream_category === 'WET' ? 'bg-green-100 text-green-700' : 
+                            row.stream_category === 'DRY' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
+                          }`}>
+                            {row.stream_category}
+                          </span>
+                        </td>
+                        <td className="py-4 font-black text-primary">+{row.estimated_weight_kg} kg</td>
+                        <td className="py-4 font-medium text-neutral-dark">{row.society_name || 'Society Bin'}</td>
+                        <td className="py-4 font-bold text-neutral-dark">{row.status}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -2319,26 +2479,33 @@ const Dashboard = () => {
           <div className="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
             <h3 className="font-bold text-neutral-dark text-lg mb-6">Collection Schedule</h3>
             <div className="space-y-4">
-              {[
-                { org: 'GreenSoil Fertilizers', initial: 'GF', type: 'Organic', time: 'Tomorrow 10AM', status: 'Confirmed', color: 'bg-green-100 text-green-700' },
-                { org: 'GreenRoad Constructions', initial: 'GR', type: 'Recyclable', time: '28 Mar', status: 'Scheduled', color: 'bg-blue-100 text-blue-700' },
-                { org: 'City Municipality', initial: 'CM', type: 'Non-Recyclable', time: 'Today 6PM', status: 'Urgent', color: 'bg-red-100 text-red-700' },
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between p-4 rounded-2xl border border-gray-50 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
-                      {item.initial}
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-neutral-dark">{item.org}</h4>
-                      <p className="text-xs text-neutral-gray">{item.type} • {item.time}</p>
-                    </div>
-                  </div>
-                  <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${item.color}`}>
-                    {item.status}
-                  </span>
+              {loading ? (
+                <div className="py-8 text-center text-neutral-gray flex items-center justify-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                  <span className="text-xs">Loading live schedule...</span>
                 </div>
-              ))}
+              ) : pickupsList.length === 0 ? (
+                <div className="py-8 text-center text-neutral-gray text-xs italic">
+                  No collections currently scheduled in database.
+                </div>
+              ) : (
+                pickupsList.filter(p => p.status !== 'DELIVERED').slice(0, 3).map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-4 rounded-2xl border border-gray-50 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+                        {item.stream_category ? item.stream_category[0] : 'W'}
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-neutral-dark">{item.assigned_driver || 'Assigned Driver'}</h4>
+                        <p className="text-xs text-neutral-gray">{item.stream_category} Stream • {new Date(item.created_at).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                      {item.status}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -2457,11 +2624,18 @@ const Dashboard = () => {
               <p className="text-xs text-neutral-gray">Today is {new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
             </div>
             <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 bg-yellow-50 text-yellow-700 border border-yellow-200/60 px-3.5 py-2 rounded-full shadow-sm font-black text-xs">
+                <Award className="w-4 h-4 text-yellow-600" />
+                <span>{ecoPoints} Eco-Points</span>
+              </div>
               <div className="relative p-2 text-neutral-gray hover:bg-gray-100 rounded-full transition-colors cursor-pointer">
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-[10px] text-white flex items-center justify-center rounded-full font-bold">3</span>
               </div>
-              <button className="hidden sm:flex items-center gap-2 bg-primary hover:bg-primary-dark text-white px-5 py-2.5 rounded-full text-sm font-bold transition-all shadow-md hover:shadow-lg active:scale-95">
+              <button 
+                onClick={() => setIsRequestModalOpen(true)}
+                className="hidden sm:flex items-center gap-2 bg-primary hover:bg-primary-dark text-white px-5 py-2.5 rounded-full text-sm font-bold transition-all shadow-md hover:shadow-lg active:scale-95"
+              >
                 <Plus className="w-4 h-4" />
                 Request Pickup
               </button>
@@ -2622,6 +2796,7 @@ const Dashboard = () => {
             onSubmit={() => {
               setIsRequestModalOpen(false);
               showToast("Pickup request sent successfully ✅");
+              fetchSocietyPickups();
             }}
           />
         )}
