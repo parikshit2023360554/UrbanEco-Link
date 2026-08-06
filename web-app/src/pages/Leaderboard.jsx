@@ -4,18 +4,7 @@ import { Trophy, TrendingUp, MapPin, ChevronLeft, ChevronRight, Filter, Search, 
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
-const societies = [
-  { rank: 1, grade: 'A++', name: 'Raghuma Hostel', city: 'Bangalore', diverted: 1340, accuracy: 99, points: 1340, color: 'text-emerald-600 bg-emerald-50', isChampion: true },
-  { rank: 2, grade: 'A++', name: 'Green Valley Apts', city: 'Mumbai', diverted: 1120, accuracy: 97, points: 1120, color: 'text-emerald-600 bg-emerald-50' },
-  { rank: 3, grade: 'A++', name: 'Sunrise RWA', city: 'Pune', diverted: 1050, accuracy: 96, points: 1050, color: 'text-emerald-600 bg-emerald-50' },
-  { rank: 4, grade: 'A++', name: 'Oakwood Society', city: 'Delhi', diverted: 980, accuracy: 95, points: 980, color: 'text-emerald-600 bg-emerald-50' },
-  { rank: 5, grade: 'A+', name: 'Maple Heights', city: 'Chennai', diverted: 860, accuracy: 92, points: 860, color: 'text-green-600 bg-green-50' },
-  { rank: 6, grade: 'A+', name: 'River View Complex', city: 'Hyderabad', diverted: 820, accuracy: 90, points: 820, color: 'text-green-600 bg-green-50' },
-  { rank: 7, grade: 'A+', name: 'Tech Park Residency', city: 'Bangalore', diverted: 780, accuracy: 88, points: 780, color: 'text-green-600 bg-green-50' },
-  { rank: 8, grade: 'A', name: 'Blue Ridge Apts', city: 'Mumbai', diverted: 640, accuracy: 85, points: 640, color: 'text-lime-600 bg-lime-50' },
-  { rank: 9, grade: 'A', name: 'Harmony Enclave', city: 'Pune', diverted: 580, accuracy: 82, points: 580, color: 'text-lime-600 bg-lime-50' },
-  { rank: 10, grade: 'B+', name: 'Urban Nest Society', city: 'Delhi', diverted: 420, accuracy: 78, points: 420, color: 'text-yellow-600 bg-yellow-50' },
-];
+const societies = [];
 
 const LeaderboardPage = () => {
   const [filterCity, setFilterCity] = useState('All Cities');
@@ -31,7 +20,9 @@ const LeaderboardPage = () => {
 
   const top3 = societies.slice(0, 3);
 
-  const PodiumCard = ({ society, rank, height }) => (
+  const PodiumCard = ({ society, rank, height }) => {
+    if (!society) return null;
+    return (
     <div className={`relative flex flex-col items-center group animate-in slide-in-from-bottom-${rank * 4} duration-1000`}>
       <div className="relative mb-4">
          <div className={`w-20 h-20 rounded-full border-4 shadow-lg overflow-hidden bg-gray-100 flex items-center justify-center transition-transform group-hover:scale-110 duration-500 ${
@@ -69,6 +60,7 @@ const LeaderboardPage = () => {
       </div>
     </div>
   );
+};
 
   return (
     <div className="min-h-screen bg-white">

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import pickupService from '../services/pickupService';
 import { 
   Leaf,
+
   Building2, 
   Users, 
   BarChart3, 
@@ -64,100 +66,40 @@ import {
   Area 
 } from 'recharts';
 
-// --- MOCK DATA ---
+// --- REAL-TIME DATA CONSTANTS ---
 
 const CITY_KPI = [
-  { id: 1, label: 'Total Societies', value: '142', sub: 'Active on platform', icon: <Users className="w-5 h-5 text-blue-600" />, color: 'bg-blue-50 text-blue-600' },
-  { id: 2, label: 'Total Orgs', value: '38', sub: 'Subscribed partners', icon: <Building2 className="w-5 h-5 text-purple-600" />, color: 'bg-purple-50 text-purple-600' },
-  { id: 3, label: 'Total Diverted', value: '48,240 kg', sub: 'This month city-wide', icon: <BarChart3 className="w-5 h-5 text-green-600" />, color: 'bg-green-50 text-green-600' },
-  { id: 4, label: 'CO2 Offset', value: '96,480 kg', sub: 'Equivalent CO2 saved', icon: <Globe className="w-5 h-5 text-teal-600" />, color: 'bg-teal-50 text-teal-600' },
-  { id: 5, label: 'Active Batches', value: '47', sub: 'Across all societies', icon: <Package className="w-5 h-5 text-orange-600" />, color: 'bg-orange-50 text-orange-600' },
-  { id: 6, label: 'Avg Accuracy', value: '91.3%', sub: 'Waste segregation rate', icon: <Target className="w-5 h-5 text-red-600" />, color: 'bg-red-50 text-red-600' },
+  { id: 1, label: 'Total Societies', value: '0', sub: 'Active on platform', icon: <Users className="w-5 h-5 text-blue-600" />, color: 'bg-blue-50 text-blue-600' },
+  { id: 2, label: 'Total Orgs', value: '0', sub: 'Subscribed partners', icon: <Building2 className="w-5 h-5 text-purple-600" />, color: 'bg-purple-50 text-purple-600' },
+  { id: 3, label: 'Total Diverted', value: '0 kg', sub: 'This month city-wide', icon: <BarChart3 className="w-5 h-5 text-green-600" />, color: 'bg-green-50 text-green-600' },
+  { id: 4, label: 'CO2 Offset', value: '0 kg', sub: 'Equivalent CO2 saved', icon: <Globe className="w-5 h-5 text-teal-600" />, color: 'bg-teal-50 text-teal-600' },
+  { id: 5, label: 'Active Batches', value: '0', sub: 'Across all societies', icon: <Package className="w-5 h-5 text-orange-600" />, color: 'bg-orange-50 text-orange-600' },
+  { id: 6, label: 'Avg Accuracy', value: '0%', sub: 'Waste segregation rate', icon: <Target className="w-5 h-5 text-red-600" />, color: 'bg-red-50 text-red-600' },
 ];
 
-const TOP_SOCIETIES = [
-  { name: 'Raghuma Hostel', city: 'Greater Noida', pts: '1,340', rank: 'A++ 🏆', kg: '1,240kg' },
-  { name: 'Green Valley Apts', city: 'Greater Noida', pts: '1,120', rank: 'A++', kg: '980kg' },
-  { name: 'Sunrise RWA', city: 'Greater Noida', pts: '1,050', rank: 'A++', kg: '920kg' },
-  { name: 'Oakwood Society', city: 'Greater Noida', pts: '980', rank: 'A++', kg: '850kg' },
-  { name: 'Maple Heights', city: 'Greater Noida', pts: '860', rank: 'A+', kg: '740kg' },
-];
+const TOP_SOCIETIES = [];
 
 const WASTE_TYPE_DATA = [
-  { name: 'Organic', value: 42, color: '#16A34A' },
-  { name: 'Recyclable', value: 28, color: '#2563EB' },
-  { name: 'Non-Recyclable', value: 30, color: '#94A3B8' },
+  { name: 'Organic', value: 0, color: '#16A34A' },
+  { name: 'Recyclable', value: 0, color: '#2563EB' },
+  { name: 'Non-Recyclable', value: 0, color: '#94A3B8' },
 ];
 
-const WEEKLY_DISTRIBUTION = [
-  { date: 'Mar 21', organic: 1200, recyclable: 800, nonRecyclable: 900 },
-  { date: 'Mar 22', organic: 1350, recyclable: 850, nonRecyclable: 880 },
-  { date: 'Mar 23', organic: 1100, recyclable: 780, nonRecyclable: 950 },
-  { date: 'Mar 24', organic: 1500, recyclable: 920, nonRecyclable: 920 },
-  { date: 'Mar 25', organic: 1420, recyclable: 900, nonRecyclable: 850 },
-  { date: 'Mar 26', organic: 1600, recyclable: 950, nonRecyclable: 890 },
-  { date: 'Mar 27', organic: 1550, recyclable: 930, nonRecyclable: 870 },
-];
+const WEEKLY_DISTRIBUTION = [];
 
-const ACCURACY_TREND = Array.from({ length: 30 }, (_, i) => ({
-  date: `Mar ${i + 1}`,
-  accuracy: 89 + Math.random() * 7,
-}));
+const ACCURACY_TREND = [];
 
-const DEVICES = [
-  { id: 'DEV-001', society: 'Raghuma Hostel', type: 'Weight Sensor', status: 'Online', lastPing: '2 min ago', accuracy: '97%' },
-  { id: 'DEV-002', society: 'Raghuma Hostel', type: 'Weight Sensor', status: 'Online', lastPing: '2 min ago', accuracy: '94%' },
-  { id: 'DEV-003', society: 'Green Valley', type: 'Weight Sensor', status: 'Online', lastPing: '5 min ago', accuracy: '96%' },
-  { id: 'DEV-004', society: 'Sunrise RWA', type: 'Weight Sensor', status: 'Offline', lastPing: '3 hrs ago', accuracy: '—' },
-  { id: 'DEV-005', society: 'Oakwood Society', type: 'Weight Sensor', status: 'Online', lastPing: '1 min ago', accuracy: '92%' },
-  { id: 'DEV-006', society: 'Maple Heights', type: 'Weight Sensor', status: 'Warning', lastPing: '45 min ago', accuracy: '78%' },
-  { id: 'DEV-007', society: 'Blue Ridge', type: 'Weight Sensor', status: 'Online', lastPing: '3 min ago', accuracy: '95%' },
-  { id: 'DEV-008', society: 'River View', type: 'Weight Sensor', status: 'Online', lastPing: '4 min ago', accuracy: '93%' },
-  { id: 'DEV-009', society: 'Tech Park', type: 'Weight Sensor', status: 'Offline', lastPing: '6 hrs ago', accuracy: '—' },
-  { id: 'DEV-010', society: 'Harmony', type: 'Weight Sensor', status: 'Online', lastPing: '2 min ago', accuracy: '91%' },
-];
+const DEVICES = [];
 
-const MATCH_LOG = [
-  { time: '9:42', society: 'Raghuma Hostel', type: 'Organic', weight: '162kg', matchedTo: 'GreenSoil Fertilizers', distance: '2.3km', score: '98%', status: 'Matched' },
-  { time: '9:31', society: 'Green Valley', type: 'Organic', weight: '155kg', matchedTo: 'GreenSoil Fertilizers', distance: '4.1km', score: '95%', status: 'Matched' },
-  { time: '9:15', society: 'Sunrise RWA', type: 'Recyclable', weight: '140kg', matchedTo: 'GreenRoad Constructions', distance: '5.2km', score: '92%', status: 'Matched' },
-  { time: '8:58', society: 'Oakwood Society', type: 'Non-Recycle', weight: '170kg', matchedTo: 'City Municipality', distance: '8.1km', score: '88%', status: 'Matched' },
-  { time: '8:45', society: 'Maple Heights', type: 'Organic', weight: '148kg', matchedTo: 'GreenSoil Fertilizers', distance: '6.8km', score: '91%', status: 'Matched' },
-  { time: '8:30', society: 'Blue Ridge', type: 'Recyclable', weight: '138kg', matchedTo: 'GreenRoad Constructions', distance: '7.2km', score: '89%', status: 'Matched' },
-  { time: '8:15', society: 'River View', type: 'Organic', weight: '152kg', matchedTo: 'GreenSoil Fertilizers', distance: '3.9km', score: '94%', status: 'Conflict' },
-  { time: '8:00', society: 'Tech Park', type: 'Non-Recycle', weight: '165kg', matchedTo: 'City Municipality', distance: '9.1km', score: '86%', status: 'Matched' },
-  { time: '7:45', society: 'Harmony', type: 'Recyclable', weight: '142kg', matchedTo: 'GreenRoad Constructions', distance: '6.5km', score: '90%', status: 'Matched' },
-  { time: '7:30', society: 'Urban Nest', type: 'Organic', weight: '158kg', matchedTo: 'GreenSoil Fertilizers', distance: '11.2km', score: '79%', status: 'Pending' },
-];
+const MATCH_LOG = [];
 
-const SOCIETIES = [
-  { id: 1, name: 'Raghuma Hostel', city: 'Greater Noida', type: 'Hostel', rank: 'A++', pts: '1340', status: 'Active', joined: 'Jan 2026', address: 'Plot 12, Knowledge Park III', admin: 'Parikshit Singh', email: 'admin@raghumahostel.com', phone: '+91 98765 43210', diverted: '4,820 kg' },
-  { id: 2, name: 'Green Valley', city: 'Greater Noida', type: 'Apartment', rank: 'A++', pts: '1120', status: 'Active', joined: 'Jan 2026', address: 'Sec 120, Green Road', admin: 'Rahul Sharma', email: 'rahul@greenvalley.com', phone: '+91 99887 76655', diverted: '3,120 kg' },
-  { id: 3, name: 'Sunrise RWA', city: 'Greater Noida', type: 'Apartment', rank: 'A++', pts: '1050', status: 'Active', joined: 'Jan 2026', address: 'Sec 45, Sun St', admin: 'Anita Roy', email: 'anita@sunriserwa.com', phone: '+91 88776 65544', diverted: '2,950 kg' },
-  { id: 4, name: 'Neo Heights', city: 'South Delhi', type: 'Apartment', rank: 'B+', pts: '450', status: 'Pending', joined: 'Mar 2026', address: 'GK-II, Block M', admin: 'Sanjay Gupta', email: 'sanjay@neoheights.com', phone: '+91 77665 54433', diverted: '120 kg' },
-  { id: 5, name: 'River View', city: 'Greater Noida', type: 'Apartment', rank: 'A', pts: '820', status: 'Suspended', joined: 'Feb 2026', address: 'Gomti Nagar, Ext', admin: 'Vijay Kumar', email: 'vijay@riverview.com', phone: '+91 66554 43322', diverted: '1,840 kg' },
-];
+const SOCIETIES = [];
 
-const ORGS = [
-  { id: 1, name: 'GreenSoil Fertilizers', type: 'Fertilizer Plant', city: 'Greater Noida', wasteTypes: ['Organic'], quota: '5,000 kg', collected: '3,420 kg', status: 'Active', regNo: 'GST-2024-001', address: 'Ind. Area, Phase 1', contact: 'Manoj Kohli', email: 'manoj@greensoil.com', phone: '+91 91234 56789' },
-  { id: 2, name: 'GreenRoad Constructions', type: 'Construction Firm', city: 'South Delhi', wasteTypes: ['Recyclable'], quota: '3,000 kg', collected: '2,150 kg', status: 'Active', regNo: 'GRC-2024-042', address: 'Okhla Phase III', contact: 'Vikram Singh', email: 'vikram@greenroad.com', phone: '+91 92345 67890' },
-  { id: 3, name: 'City Municipality', type: 'Municipal Authority', city: 'Greater Noida', wasteTypes: ['Non-Recyclable'], quota: '10,000 kg', collected: '6,800 kg', status: 'Active', regNo: 'CM-NOM-001', address: 'City Hall, Sec 1', contact: 'Dr. Verma', email: 'verma@noida.gov', phone: '+91 93456 78901' },
-  { id: 4, name: 'EcoNGO Clean', type: 'NGO', city: 'Greater Noida', wasteTypes: ['Organic', 'Recyclable'], quota: '1,000 kg', collected: '450 kg', status: 'Pending', regNo: 'NGO-ECO-789', address: 'Knowledge Park II', contact: 'Sarah Khan', email: 'sarah@econgo.org', phone: '+91 94567 89012' },
-];
+const ORGS = [];
 
-const MOCKED_BINS = [
-  { id: 'BIN-101', society: 'Raghuma Hostel', type: 'Organic', level: '88%' },
-  { id: 'BIN-102', society: 'Raghuma Hostel', type: 'Recyclable', level: '82%' },
-  { id: 'BIN-204', society: 'Green Valley', type: 'Organic', level: '92%' },
-  { id: 'BIN-301', society: 'Sunrise RWA', type: 'Organic', level: '81%' },
-  { id: 'BIN-402', society: 'Neo Heights', type: 'Recyclable', level: '85%' },
-];
+const MOCKED_BINS = [];
 
-const MOCKED_MISSED = [
-  { id: 'MISS-01', society: 'Oakwood Society', type: 'Organic', date: 'Mar 25, 2026' },
-  { id: 'MISS-02', society: 'Maple Heights', type: 'Recyclable', date: 'Mar 26, 2026' },
-  { id: 'MISS-03', society: 'River View', type: 'Organic', date: 'Mar 27, 2026' },
-];
+const MOCKED_MISSED = [];
 
 // --- HELPER COMPONENTS ---
 
@@ -257,6 +199,26 @@ const AdminConsole = () => {
 
   const [devicesState, setDevicesState] = useState(DEVICES);
 
+  // Live Pickups State from GET /api/v1/pickups/admin/all
+  const [adminPickups, setAdminPickups] = useState([]);
+  const [loadingPickups, setLoadingPickups] = useState(false);
+
+  const fetchAdminPickups = async () => {
+    try {
+      setLoadingPickups(true);
+      const res = await pickupService.getAdminPickups();
+      setAdminPickups(res.pickups || []);
+    } catch (err) {
+      console.error('Error fetching admin pickups:', err);
+    } finally {
+      setLoadingPickups(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAdminPickups();
+  }, []);
+
   const filteredSocieties = SOCIETIES.filter(s => {
     const matchesSearch = s.name.toLowerCase().includes(societySearchQuery.toLowerCase());
     const matchesFilter = activeSocietyFilter === 'All' || s.status === activeSocietyFilter;
@@ -273,6 +235,7 @@ const AdminConsole = () => {
 
   const navItems = [
     { id: 'overview', label: 'City Overview', icon: <Building2 className="w-5 h-5" /> },
+    { id: 'pickups', label: 'Requested Pickups', icon: <Truck className="w-5 h-5" /> },
     { id: 'ai', label: 'AI Performance', icon: <Bot className="w-5 h-5" /> },
     { id: 'matching', label: 'Matching Engine', icon: <Settings2 className="w-5 h-5" /> },
     { id: 'societies', label: 'Society Mgmt', icon: <Users className="w-5 h-5" /> },
@@ -280,6 +243,7 @@ const AdminConsole = () => {
     { id: 'reports', label: 'Reports', icon: <FileBarChart className="w-5 h-5" /> },
     { id: 'settings', label: 'System Settings', icon: <Settings className="w-5 h-5" /> },
   ];
+
 
   const renderOverview = () => (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
@@ -1196,7 +1160,109 @@ const AdminConsole = () => {
     </motion.div>
   );
 
+  const renderPickups = () => (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <Truck className="w-6 h-6 text-green-600" />
+            Administrative Pickup Inventory & Real-Time Sync
+          </h2>
+          <p className="text-xs text-gray-500 mt-1">
+            Connected live to GET /api/v1/pickups/admin/all (PostgreSQL Database Engine)
+          </p>
+        </div>
+
+        <button
+          onClick={fetchAdminPickups}
+          disabled={loadingPickups}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 font-bold rounded-xl text-xs transition-all"
+        >
+          <RefreshCw className={`w-4 h-4 ${loadingPickups ? 'animate-spin' : ''}`} />
+          Refresh Pickups
+        </button>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="font-bold text-gray-900 text-base">All Requested Waste Pickups</h3>
+          <span className="text-xs bg-green-50 text-green-700 font-bold px-3 py-1 rounded-full border border-green-200">
+            {adminPickups.length} Pickups Total
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm text-gray-600">
+            <thead className="bg-gray-50 text-xs uppercase text-gray-400 font-bold border-b border-gray-100">
+              <tr>
+                <th className="px-6 py-4">QR Code Token</th>
+                <th className="px-6 py-4">Society Name</th>
+                <th className="px-6 py-4">Stream</th>
+                <th className="px-6 py-4">Est. Weight</th>
+                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4">Assigned Driver</th>
+                <th className="px-6 py-4">Requested At</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {adminPickups.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="px-6 py-12 text-center text-gray-400 text-sm">
+                    No requested pickups found in database. Request a pickup from Society Portal to generate test data.
+                  </td>
+                </tr>
+              ) : (
+                adminPickups.map((p) => (
+                  <tr key={p.id} className="hover:bg-gray-50/80 transition-colors">
+                    <td className="px-6 py-4 font-mono text-xs font-bold text-gray-900">
+                      {p.qr_code_token}
+                    </td>
+                    <td className="px-6 py-4 font-semibold text-gray-900">
+                      {p.society_name}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                        p.stream_category === 'WET' ? 'bg-emerald-100 text-emerald-800' :
+                        p.stream_category === 'DRY' ? 'bg-blue-100 text-blue-800' :
+                        p.stream_category === 'HAZARDOUS' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {p.stream_category}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 font-bold text-gray-900">
+                      {p.estimated_weight_kg} kg
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                        p.status === 'OUT_FOR_DELIVERY' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                        p.status === 'DELIVERED' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                        'bg-amber-100 text-amber-800 border border-amber-200'
+                      }`}>
+                        <span className={`w-2 h-2 rounded-full ${
+                          p.status === 'OUT_FOR_DELIVERY' ? 'bg-blue-500 animate-pulse' :
+                          p.status === 'DELIVERED' ? 'bg-emerald-500' : 'bg-amber-500'
+                        }`} />
+                        {p.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-xs font-semibold text-gray-700">
+                      {p.assigned_driver}
+                    </td>
+                    <td className="px-6 py-4 text-xs text-gray-400">
+                      {p.created_at ? new Date(p.created_at).toLocaleString() : 'Recent'}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </motion.div>
+  );
+
   return (
+
     <div className="min-h-screen bg-light-green/20 font-inter">
       {/* Fixed Sidebar - Desktop */}
       <aside className="hidden md:flex flex-col w-64 bg-white border-r border-gray-100 fixed top-0 bottom-0 left-0 z-50">
@@ -1273,6 +1339,7 @@ const AdminConsole = () => {
         <section className="flex-1 p-4 md:p-8 overflow-y-auto">
           <AnimatePresence mode="wait">
             {activeTab === 'overview' && renderOverview()}
+            {activeTab === 'pickups' && renderPickups()}
             {activeTab === 'ai' && renderAI()}
             {activeTab === 'matching' && renderMatching()}
             {activeTab === 'societies' && renderSocieties()}
@@ -1281,6 +1348,7 @@ const AdminConsole = () => {
             {activeTab === 'settings' && renderSettings()}
           </AnimatePresence>
         </section>
+
 
 
       {/* Modals & Toasts */}

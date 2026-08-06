@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import civicService from '../services/civicService';
+import pickupService from '../services/pickupService';
+import taskService from '../services/taskService';
 import { 
   Leaf, 
+
   Home, 
   ClipboardList, 
   Truck, 
@@ -35,7 +39,8 @@ import {
   User,
   Eye,
   EyeOff,
-  Users
+  Users,
+  Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -56,61 +61,15 @@ import {
 
 // --- DATA ---
 const STATS = [
-  { id: 1, label: 'Active Subscriptions', value: '3', icon: <ClipboardList className="w-5 h-5" />, color: 'bg-blue-50 text-blue-600' },
-  { id: 2, label: 'Collected This Month', value: '462 kg', icon: <Leaf className="w-5 h-5" />, color: 'bg-green-50 text-green-600' },
-  { id: 3, label: 'Pending Pickups', value: '2', icon: <Truck className="w-5 h-5" />, color: 'bg-orange-50 text-orange-600' },
-  { id: 4, label: 'Monthly Quota Used', value: '92%', icon: <Target className="w-5 h-5" />, color: 'bg-purple-50 text-purple-600' },
+  { id: 1, label: 'Active Subscriptions', value: '0', icon: <ClipboardList className="w-5 h-5" />, color: 'bg-blue-50 text-blue-600' },
+  { id: 2, label: 'Collected This Month', value: '0 kg', icon: <Leaf className="w-5 h-5" />, color: 'bg-green-50 text-green-600' },
+  { id: 3, label: 'Pending Pickups', value: '0', icon: <Truck className="w-5 h-5" />, color: 'bg-orange-50 text-orange-600' },
+  { id: 4, label: 'Monthly Quota Used', value: '0%', icon: <Target className="w-5 h-5" />, color: 'bg-purple-50 text-purple-600' },
 ];
 
-const QUOTAS = [
-  { 
-    id: 1, 
-    type: 'Organic Waste', 
-    icon: '🌱', 
-    subscribed: ['Raghuma Hostel', 'Green Valley Apts', 'Sunrise RWA'], 
-    limit: 500, 
-    used: 462, 
-    status: 'Nearly Full', 
-    statusColor: 'text-orange-600 bg-orange-100',
-    progressColor: 'bg-green-500'
-  },
-  { 
-    id: 2, 
-    type: 'Recyclable Waste', 
-    icon: '♻️', 
-    subscribed: ['Raghuma Hostel'], 
-    limit: 400, 
-    used: 285, 
-    status: 'On Track', 
-    statusColor: 'text-green-600 bg-green-100',
-    progressColor: 'bg-orange-500'
-  },
-  { 
-    id: 3, 
-    type: 'Non-Recyclable', 
-    icon: '🗑️', 
-    subscribed: [], 
-    limit: 0, 
-    used: 0, 
-    status: 'Not Subscribed', 
-    statusColor: 'text-gray-500 bg-gray-100',
-    isNotSubscribed: true 
-  },
-];
-
-const UPCOMING_PICKUPS = [
-  { id: 1, society: 'Raghuma Hostel', type: 'Organic', time: 'Tomorrow 10AM', batch: '#2024-091', weight: '162kg', status: 'Confirmed', statusColor: 'bg-green-100 text-green-700' },
-  { id: 2, society: 'Green Valley Apts', type: 'Organic', time: '28 Mar 2:00 PM', batch: '#2024-092', weight: '155kg', status: 'Scheduled', statusColor: 'bg-blue-100 text-blue-700' },
-  { id: 3, society: 'Sunrise RWA', type: 'Organic', time: '29 Mar 11AM', batch: '#2024-093', weight: '148kg', status: 'Pending', statusColor: 'bg-orange-100 text-orange-700' },
-];
-
-const RECENT_VERIFICATIONS = [
-  { id: 1, society: 'Raghuma Hostel', type: 'Organic', weight: '160kg', date: '25 Mar', status: 'Verified' },
-  { id: 2, society: 'Green Valley Apts', type: 'Recyclable', weight: '85kg', date: '24 Mar', status: 'Verified' },
-  { id: 3, society: 'Sunrise RWA', type: 'Organic', weight: '142kg', date: '23 Mar', status: 'Verified' },
-  { id: 4, society: 'Raghuma Hostel', type: 'Organic', weight: '158kg', date: '21 Mar', status: 'Verified' },
-  { id: 5, society: 'Green Valley Apts', type: 'Organic', weight: '165kg', date: '19 Mar', status: 'Verified' },
-];
+const QUOTAS = [];
+const UPCOMING_PICKUPS = [];
+const RECENT_VERIFICATIONS = [];
 
 // --- COMPONENTS ---
 
@@ -187,7 +146,33 @@ const OrgPortal = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '' });
 
+  // Live Backend Data States
+  const [liveReports, setLiveReports] = useState([]);
+  const [livePickups, setLivePickups] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchOrgData = async () => {
+    try {
+      setLoading(true);
+      const [reportsRes, pickupsRes] = await Promise.all([
+        civicService.getReports().catch(() => ({ reports: [] })),
+        pickupService.getAdminPickups().catch(() => ({ pickups: [] })),
+      ]);
+      setLiveReports(reportsRes.reports || []);
+      setLivePickups(pickupsRes.pickups || []);
+    } catch (err) {
+      console.error('Failed to load org portal data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrgData();
+  }, []);
+
   // Modal States
+
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -1288,54 +1273,75 @@ const OrgPortal = () => {
             <button className="text-sm font-bold text-green-600 hover:underline">View All</button>
           </div>
           <div className="space-y-4">
-            {UPCOMING_PICKUPS.map((pickup) => (
-              <div key={pickup.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl border border-gray-50 bg-gray-50/30 hover:bg-gray-50 transition-colors gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center">
-                    <Truck className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900">{pickup.society}</h4>
-                    <p className="text-xs text-gray-500 mt-0.5">{pickup.type} • {pickup.time}</p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between md:justify-end gap-4">
-                  <div className="text-right">
-                    <p className="text-[10px] text-gray-400 font-mono">{pickup.batch}</p>
-                    <p className="text-sm font-bold text-gray-700">~{pickup.weight}</p>
-                  </div>
-                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${pickup.statusColor}`}>
-                    {pickup.status}
-                  </span>
-                  <button className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors">
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
-                </div>
+            {loading ? (
+              <div className="p-8 text-center text-gray-400 flex flex-col items-center justify-center gap-2">
+                <Loader2 className="w-6 h-6 animate-spin text-green-600" />
+                <span className="text-xs">Loading live pickups telemetry...</span>
               </div>
-            ))}
+            ) : livePickups.length === 0 ? (
+              <div className="p-8 text-center text-gray-400 text-xs italic">
+                No active pickup requests logged in the database.
+              </div>
+            ) : (
+              livePickups.slice(0, 4).map((pickup) => (
+                <div key={pickup.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl border border-gray-50 bg-gray-50/30 hover:bg-gray-50 transition-colors gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center">
+                      <Truck className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900">{pickup.society_name}</h4>
+                      <p className="text-xs text-gray-500 mt-0.5">{pickup.stream_category} Stream • {pickup.assigned_driver}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between md:justify-end gap-4">
+                    <div className="text-right">
+                      <p className="text-[10px] text-gray-400 font-mono">{pickup.qr_code_token}</p>
+                      <p className="text-sm font-bold text-gray-700">{pickup.estimated_weight_kg} kg</p>
+                    </div>
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      pickup.status === 'OUT_FOR_DELIVERY' ? 'bg-blue-100 text-blue-700' :
+                      pickup.status === 'DELIVERED' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                    }`}>
+                      {pickup.status}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-900 mb-6">Recent Verified Pickups</h3>
+          <h3 className="text-lg font-bold text-gray-900 mb-6">Crowdsourced Civic Reports</h3>
           <div className="space-y-4">
-            {RECENT_VERIFICATIONS.map((item) => (
-              <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                <div>
-                  <h4 className="text-sm font-bold text-gray-900">{item.society}</h4>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] px-1.5 py-0.5 bg-green-50 text-green-600 rounded font-medium">{item.type}</span>
-                    <span className="text-[10px] text-gray-400">{item.weight} • {item.date}</span>
+            {loading ? (
+              <div className="p-8 text-center text-gray-400 flex flex-col items-center justify-center gap-2">
+                <Loader2 className="w-6 h-6 animate-spin text-green-600" />
+                <span className="text-xs">Loading live civic reports...</span>
+              </div>
+            ) : liveReports.length === 0 ? (
+              <div className="p-8 text-center text-gray-400 text-xs italic">
+                No civic waste reports filed yet.
+              </div>
+            ) : (
+              liveReports.slice(0, 4).map((item) => (
+                <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-900">{item.description || 'Street Dump Report'}</h4>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] px-1.5 py-0.5 bg-green-50 text-green-600 rounded font-medium">{item.waste_type}</span>
+                      <span className="text-[10px] text-gray-400">{item.reporter_name || 'Anonymous Resident'}</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="text-[10px] font-bold text-green-600 flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3" /> {item.status}
+                    </span>
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-2">
-                  <span className="text-[10px] font-bold text-green-600 flex items-center gap-1">
-                    <CheckCircle className="w-3 h-3" /> Verified
-                  </span>
-                  <button className="text-[10px] font-bold text-green-600 hover:underline">View Proof</button>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>
