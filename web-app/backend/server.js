@@ -86,6 +86,27 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Proxy IP geolocation through the backend to avoid browser CORS restrictions.
+app.get('/api/v1/location', async (req, res, next) => {
+  try {
+    const response = await fetch('https://ipapi.co/json/');
+    if (!response.ok) {
+      return res.status(502).json({ success: false, error: 'IP geolocation provider unavailable.' });
+    }
+
+    const location = await response.json();
+    return res.json({
+      latitude: location.latitude,
+      longitude: location.longitude,
+      city: location.city,
+      region: location.region,
+      postal: location.postal,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 // 6. Sub-Router Registrations
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/auth', authRoutes);

@@ -10,7 +10,7 @@ const getBaseUrl = () => {
   return 'http://localhost:5000/api/v1';
 };
 
-const API_BASE_URL = getBaseUrl();
+export const API_BASE_URL = getBaseUrl();
 
 /**
  * Core HTTP Request Processor with Centralized Auth Interceptor

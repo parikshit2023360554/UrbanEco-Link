@@ -22,6 +22,7 @@ import {
   Tag
 } from 'lucide-react';
 import authService from '../services/authService';
+import { apiClient } from '../services/api';
 
 export const Register = () => {
   // Active role tab: 'SOCIETY_INDIVIDUAL', 'NGO', 'FACTORY', 'DELIVERY_PARTNER'
@@ -96,16 +97,13 @@ export const Register = () => {
 
     const fallbackToIpGeolocation = async () => {
       try {
-        const res = await fetch('https://ipapi.co/json/');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.latitude && data.longitude) {
-            applyCoordinates(data.latitude, data.longitude, 'IP Location');
-            if (data.city && !city) setCity(data.city);
-            if (data.region && !state) setState(data.region);
-            if (data.postal && !pincode) setPincode(data.postal);
-            return true;
-          }
+        const data = await apiClient.get('/location');
+        if (data.latitude && data.longitude) {
+          applyCoordinates(data.latitude, data.longitude, 'IP Location');
+          if (data.city && !city) setCity(data.city);
+          if (data.region && !state) setState(data.region);
+          if (data.postal && !pincode) setPincode(data.postal);
+          return true;
         }
       } catch (e) {
         console.warn('IP Geolocation API fallback failed:', e);

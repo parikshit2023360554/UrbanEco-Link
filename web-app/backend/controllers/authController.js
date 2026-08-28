@@ -20,9 +20,10 @@ const generateToken = (id, email, role) => {
  * @access  Public
  */
 export const register = async (req, res, next) => {
-  const client = await pool.connect();
+  let client;
 
   try {
+    client = await pool.connect();
     const {
       name,
       full_name,
@@ -330,11 +331,21 @@ export const register = async (req, res, next) => {
 
   } catch (err) {
     // Rollback transaction on error
-    await client.query('ROLLBACK');
+    if (client) {
+      await client.query('ROLLBACK').catch(() => {});
+    }
+
+    if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ETIMEDOUT') {
+      return res.status(503).json({
+        success: false,
+        error: 'Database is unavailable. Check DATABASE_URL and restart the backend.',
+      });
+    }
+
     next(err);
   } finally {
     // Always release database client back to the pool
-    client.release();
+    client?.release();
   }
 };
 

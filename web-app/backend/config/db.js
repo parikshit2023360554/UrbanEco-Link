@@ -5,12 +5,19 @@ dotenv.config();
 
 const { Pool } = pg;
 
-// Connection string configuration with fallback options
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/urbaneco_db';
+// Prefer a hosted database URL, while keeping the local fallback for development.
+const connectionString =
+  process.env.DATABASE_URL ||
+  process.env.SUPABASE_DB_URL ||
+  'postgresql://postgres:postgres@localhost:5432/urbaneco_db';
+
+const isHostedDatabase = /supabase\.co|supabase\.com/i.test(connectionString);
 
 const pool = new Pool({
   connectionString,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  ssl: isHostedDatabase || process.env.DATABASE_SSL === 'true'
+    ? { rejectUnauthorized: false }
+    : false,
   max: 20, // Maximum pool connections
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
@@ -26,6 +33,8 @@ pool.on('error', (err) => {
 export const connectDB = async () => {
   try {
     const client = await pool.connect();
+
+    await client.query('CREATE EXTENSION IF NOT EXISTS postgis;');
 
     // Verify PostGIS extension
     try {
@@ -61,6 +70,8 @@ export const connectDB = async () => {
         society_name VARCHAR(255),
         trust_score INTEGER DEFAULT 100 CHECK (trust_score >= 0),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
       ALTER TABLE users ADD COLUMN IF NOT EXISTS name VARCHAR(255);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name VARCHAR(255);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);
@@ -253,6 +264,18 @@ export const connectDB = async () => {
       EXCEPTION WHEN OTHERS THEN NULL;
       END $$;
 
+      CREATE TABLE IF NOT EXISTS civic_reports (
+        id SERIAL PRIMARY KEY,
+        reporter_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        description TEXT,
+        waste_type VARCHAR(50) DEFAULT 'DRY',
+        before_image_url TEXT,
+        location GEOGRAPHY(Point, 4326),
+        status VARCHAR(50) DEFAULT 'PENDING',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        reported_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
       ALTER TABLE civic_reports ADD COLUMN IF NOT EXISTS description TEXT;
       ALTER TABLE civic_reports ADD COLUMN IF NOT EXISTS waste_type VARCHAR(50) DEFAULT 'DRY';
       ALTER TABLE civic_reports ADD COLUMN IF NOT EXISTS id SERIAL;
@@ -304,7 +327,10 @@ export const connectDB = async () => {
 
     client.release();
   } catch (err) {
-    console.warn(`⚠️ Connected to UrbanEco PostgreSQL Database (Note: Ensure PostGIS extension is enabled via 'CREATE EXTENSION IF NOT EXISTS postgis;')`);
+    const details = err.errors?.map((cause) => cause.message).filter(Boolean).join('; ');
+    console.error(
+      `❌ Database initialization failed [${err.code || 'UNKNOWN'}]: ${err.message || details || 'Unable to connect to the configured database.'}`
+    );
     if (process.env.NODE_ENV === 'production') {
       console.error('Fatal Database Connection Error:', err);
       process.exit(1);
