@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+web-app/backend/.env
+web-app/backend/.env.example
