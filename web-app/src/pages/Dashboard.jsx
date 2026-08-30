@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import pickupService from '../services/pickupService';
 import batchService from '../services/batchService';
 import bwgService from '../services/bwgService';
@@ -749,6 +750,7 @@ const PartnerDetailsModal = ({ org, onClose }) => {
 };
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('Overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [toast, setToast] = useState(null);
@@ -773,6 +775,11 @@ const Dashboard = () => {
   const [activeBatches, setActiveBatches] = useState([]);
   const [batchHistory, setBatchHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const handleLogout = () => {
+    authService.logout();
+    navigate('/login', { replace: true });
+  };
 
   const fetchSocietyPickups = async () => {
     try {
@@ -2607,7 +2614,7 @@ const Dashboard = () => {
               <p className="text-[10px] text-neutral-gray uppercase font-bold tracking-widest">Society Admin</p>
             </div>
           </div>
-          <button className="w-full flex items-center gap-2 text-sm font-semibold text-red-500 hover:text-red-600 transition-colors px-2">
+          <button onClick={handleLogout} className="w-full flex items-center gap-2 text-sm font-semibold text-red-500 hover:text-red-600 transition-colors px-2">
             <LogOut className="w-4 h-4" />
             Logout
           </button>
@@ -2700,7 +2707,7 @@ const Dashboard = () => {
                     <p className="text-[10px] text-neutral-gray font-bold">SOCIETY ADMIN</p>
                   </div>
                 </div>
-                <button className="flex items-center gap-2 text-red-500 font-bold text-sm">
+                <button onClick={handleLogout} className="flex items-center gap-2 text-red-500 font-bold text-sm">
                   <LogOut className="w-4 h-4" /> Logout
                 </button>
               </div>

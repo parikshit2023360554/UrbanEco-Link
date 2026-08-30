@@ -21,6 +21,22 @@ dotenv.config();
 // Initialize Express Application
 const app = express();
 const PORT = process.env.PORT || 5000;
+const allowedOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (allowedOrigins.length === 0 || allowedOrigins.includes('*')) return true;
+  if (allowedOrigins.includes(origin)) return true;
+
+  const normalized = origin.toLowerCase();
+  const isLocalhostOrigin = normalized.includes('localhost') || normalized.includes('127.0.0.1');
+  const isCodespacesOrigin = normalized.includes('.app.github.dev');
+
+  return isLocalhostOrigin || isCodespacesOrigin;
+};
 
 // Connect & Verify PostgreSQL + PostGIS Database
 connectDB();
@@ -29,10 +45,17 @@ connectDB();
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error('Origin is not allowed by CORS.'));
+    },
     credentials: true,
   })
 );
+app.options('*', cors());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 // 2. Express Rate Limiting Middleware

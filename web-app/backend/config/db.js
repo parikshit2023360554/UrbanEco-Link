@@ -246,6 +246,7 @@ export const connectDB = async () => {
       ALTER TABLE batches ADD COLUMN IF NOT EXISTS waste_category VARCHAR(50);
       ALTER TABLE batches ADD COLUMN IF NOT EXISTS stream_category VARCHAR(50);
       ALTER TABLE batches ADD COLUMN IF NOT EXISTS total_weight_kg NUMERIC(10, 2);
+      ALTER TABLE batches ADD COLUMN IF NOT EXISTS unallocated_weight_kg NUMERIC(10, 2);
       ALTER TABLE batches ADD COLUMN IF NOT EXISTS weight_kg NUMERIC(10, 2);
       ALTER TABLE batches ADD COLUMN IF NOT EXISTS qr_code VARCHAR(255);
       ALTER TABLE batches ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'PENDING_PICKUP';
@@ -259,6 +260,7 @@ export const connectDB = async () => {
       BEGIN 
         ALTER TABLE batches ALTER COLUMN waste_category DROP NOT NULL;
         ALTER TABLE batches ALTER COLUMN total_weight_kg DROP NOT NULL;
+        ALTER TABLE batches ALTER COLUMN unallocated_weight_kg DROP NOT NULL;
         ALTER TABLE batches ALTER COLUMN weight_kg DROP NOT NULL;
         ALTER TABLE batches ALTER COLUMN stream_category DROP NOT NULL;
       EXCEPTION WHEN OTHERS THEN NULL;

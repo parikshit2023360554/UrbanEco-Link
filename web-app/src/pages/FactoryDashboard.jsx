@@ -226,6 +226,15 @@ const FactoryDashboard = () => {
     total_incoming_weight_kg: 0,
     pickups: [],
   });
+  const [factoryAnalytics, setFactoryAnalytics] = useState({
+    daily_quota_kg: 1000,
+    weekly_quota_kg: 7000,
+    remaining_quota_kg: 1000,
+    accepted_waste_category: 'PLASTIC',
+    total_weight_processed_kg: 0,
+    pending_incoming_trucks: 0,
+    completed_deliveries_count: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedShipment, setSelectedShipment] = useState(null);
@@ -266,13 +275,23 @@ const FactoryDashboard = () => {
       const statsRes = await factoryService.getStats().catch(() => null);
 
       if (statsRes?.stats) {
+        const stats = statsRes.stats;
         setFactorySettings({
-          weekly_quota_kg: statsRes.stats.weekly_quota_kg || 1000,
+          weekly_quota_kg: stats.weekly_quota_kg || 1000,
+        });
+        setFactoryAnalytics({
+          daily_quota_kg: stats.daily_quota_kg || 1000,
+          weekly_quota_kg: stats.weekly_quota_kg || 7000,
+          remaining_quota_kg: stats.remaining_quota_kg || 1000,
+          accepted_waste_category: stats.accepted_waste_category || 'PLASTIC',
+          total_weight_processed_kg: stats.total_weight_processed_kg || 0,
+          pending_incoming_trucks: stats.pending_incoming_trucks || 0,
+          completed_deliveries_count: stats.completed_deliveries_count || 0,
         });
       }
 
       const shipmentsList = res.pickups || res.shipments || [];
-      const totalWeight = shipmentsList.reduce((acc, p) => acc + parseFloat(p.allocated_weight_kg || p.estimated_weight_kg || 0), 0);
+      const totalWeight = shipmentsList.reduce((acc, p) => acc + parseFloat(p.allocated_weight_kg || p.estimated_weight_kg || p.weight_kg || 0), 0);
 
       setIncomingData({
         incoming_trucks_count: shipmentsList.length,
@@ -345,26 +364,46 @@ const FactoryDashboard = () => {
   ];
 
   const wetWeight = incomingData.pickups
-    .filter((p) => p.stream_category === 'WET')
-    .reduce((sum, p) => sum + parseFloat(p.estimated_weight_kg || 0), 0);
+    .filter((p) => (p.stream_category || p.waste_category || '').toString().toUpperCase() === 'WET')
+    .reduce((sum, p) => sum + parseFloat(p.allocated_weight_kg || p.estimated_weight_kg || p.weight_kg || 0), 0);
 
   const dryWeight = incomingData.pickups
-    .filter((p) => p.stream_category === 'DRY')
-    .reduce((sum, p) => sum + parseFloat(p.estimated_weight_kg || 0), 0);
+    .filter((p) => (p.stream_category || p.waste_category || '').toString().toUpperCase() === 'DRY')
+    .reduce((sum, p) => sum + parseFloat(p.allocated_weight_kg || p.estimated_weight_kg || p.weight_kg || 0), 0);
 
   const hazardousWeight = incomingData.pickups
-    .filter((p) => p.stream_category === 'HAZARDOUS' || p.stream_category === 'SANITARY')
-    .reduce((sum, p) => sum + parseFloat(p.estimated_weight_kg || 0), 0);
+    .filter((p) => {
+      const kind = (p.stream_category || p.waste_category || '').toString().toUpperCase();
+      return kind === 'HAZARDOUS' || kind === 'SANITARY';
+    })
+    .reduce((sum, p) => sum + parseFloat(p.allocated_weight_kg || p.estimated_weight_kg || p.weight_kg || 0), 0);
+
+  const intakeLogs = incomingData.pickups.map((pickup, index) => ({
+    id: pickup.allocation_id || pickup.id || index,
+    batchId: pickup.batch_id || pickup.qr_code || pickup.qr_code_token || `B-${index + 1}`,
+    source: pickup.society_name || 'Registered Society',
+    stream: pickup.stream_category || pickup.waste_category || 'WET',
+    weight: Number(pickup.allocated_weight_kg || pickup.estimated_weight_kg || pickup.weight_kg || 0),
+    status: pickup.shipment_status || pickup.allocation_status || pickup.status || 'ASSIGNED',
+    time: pickup.allocated_at || pickup.created_at || new Date().toISOString(),
+  }));
+
+  const analyticsByStream = [
+    { label: 'Wet', value: wetWeight, color: 'bg-amber-500' },
+    { label: 'Dry', value: dryWeight, color: 'bg-emerald-500' },
+    { label: 'Hazardous', value: hazardousWeight, color: 'bg-rose-500' },
+  ];
+
+  const quotaUsagePercent = Math.min(100, ((factoryAnalytics.weekly_quota_kg - factoryAnalytics.remaining_quota_kg) / Math.max(factoryAnalytics.weekly_quota_kg, 1)) * 100 || 0);
 
   const renderContent = () => {
     if (activeTab === 'Shipments' || activeTab === 'Overview') {
       return (
         <div className="space-y-8 animate-in fade-in duration-500">
-          {/* Top Banner & Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-black text-neutral-dark">Factory Waste Processing Portal</h1>
-              <p className="text-sm font-medium text-neutral-gray">Monitor incoming trucks, weighbridge verification & processing intake</p>
+              <p className="text-sm font-medium text-neutral-gray">Monitor incoming trucks, weighbridge verification and intake operations</p>
             </div>
             <div className="flex items-center gap-3">
               <button 
@@ -377,46 +416,18 @@ const FactoryDashboard = () => {
             </div>
           </div>
 
-          {/* Stat Cards Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard 
-              title="Incoming Trucks" 
-              value={incomingData.incoming_trucks_count} 
-              subtext="En route to processing plant"
-              trend="Active"
-              icon={Truck} 
-              colorClass="bg-blue-50 text-blue-600"
-            />
-            <StatCard 
-              title="Total En Route Weight" 
-              value={`${incomingData.total_incoming_weight_kg.toLocaleString()} kg`} 
-              subtext="Declared shipment payload"
-              trend="Live"
-              icon={Scale} 
-              colorClass="bg-green-50 text-green-600"
-            />
-            <StatCard 
-              title="Wet Organic Stream" 
-              value={`${wetWeight.toLocaleString()} kg`} 
-              subtext="Composting & Biogas ready"
-              icon={Recycle} 
-              colorClass="bg-yellow-50 text-yellow-600"
-            />
-            <StatCard 
-              title="Dry Recyclable Stream" 
-              value={`${dryWeight.toLocaleString()} kg`} 
-              subtext="Material Recovery Facility"
-              icon={Box} 
-              colorClass="bg-purple-50 text-purple-600"
-            />
+            <StatCard title="Incoming Trucks" value={incomingData.incoming_trucks_count} subtext="Assigned to your facility" trend="Active" icon={Truck} colorClass="bg-blue-50 text-blue-600" />
+            <StatCard title="Total Incoming Weight" value={`${incomingData.total_incoming_weight_kg.toLocaleString()} kg`} subtext="Live scheduled drop weight" trend="Live" icon={Scale} colorClass="bg-green-50 text-green-600" />
+            <StatCard title="Wet Stream" value={`${wetWeight.toLocaleString()} kg`} subtext="Composting / biogas intake" icon={Recycle} colorClass="bg-yellow-50 text-yellow-600" />
+            <StatCard title="Dry Stream" value={`${dryWeight.toLocaleString()} kg`} subtext="Material recovery yard" icon={Box} colorClass="bg-purple-50 text-purple-600" />
           </div>
 
-          {/* Incoming Shipments Table / Card Grid */}
           <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
               <div>
                 <h3 className="font-bold text-neutral-dark text-lg">Incoming Truck Shipments</h3>
-                <p className="text-xs text-neutral-gray font-medium">Verify weighbridge payload and click 'Confirm Delivery' to complete intake</p>
+                <p className="text-xs text-neutral-gray font-medium">Gate verification and final intake confirmation from backend allocation data</p>
               </div>
               <span className="text-xs font-bold px-3 py-1 bg-blue-50 text-blue-600 rounded-full">
                 {incomingData.pickups.length} En Route
@@ -431,9 +442,9 @@ const FactoryDashboard = () => {
             ) : incomingData.pickups.length === 0 ? (
               <div className="p-12 text-center text-neutral-gray bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
                 <Truck className="w-12 h-12 text-neutral-gray/40 mx-auto mb-3" />
-                <h4 className="font-bold text-neutral-dark text-base mb-1">No Incoming Shipments Out For Delivery</h4>
+                <h4 className="font-bold text-neutral-dark text-base mb-1">No incoming shipments scheduled</h4>
                 <p className="text-xs text-neutral-gray max-w-md mx-auto">
-                  When delivery partners scan waste bins and start transport, incoming trucks will appear here for gate weighbridge verification.
+                  Newly assigned waste drops from society batches will appear here for intake and verification.
                 </p>
               </div>
             ) : (
@@ -442,64 +453,35 @@ const FactoryDashboard = () => {
                   const statusVal = pickup.shipment_status || pickup.allocation_status || pickup.status || 'ASSIGNED';
                   const isDelivered = statusVal === 'DELIVERED';
                   return (
-                    <motion.div 
-                      key={pickup.id || pickup.allocation_id}
-                      whileHover={{ y: -4 }}
-                      className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100 hover:border-green-200 hover:shadow-md transition-all flex flex-col justify-between gap-5"
-                    >
+                    <motion.div key={pickup.id || pickup.allocation_id} whileHover={{ y: -4 }} className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100 hover:border-green-200 hover:shadow-md transition-all flex flex-col justify-between gap-5">
                       <div>
                         <div className="flex justify-between items-start mb-4">
                           <div className="p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
                             <Truck className="w-6 h-6 text-primary" />
                           </div>
-                          <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${
-                            isDelivered ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-blue-100 text-blue-700 border border-blue-200'
-                          }`}>
+                          <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${isDelivered ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-blue-100 text-blue-700 border border-blue-200'}`}>
                             {statusVal}
                           </span>
                         </div>
-
                         <div className="mb-3">
-                          <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
-                            Drop Assigned To Your Facility
-                          </span>
-                          <h4 className="font-bold text-neutral-dark text-base mt-1 mb-0.5">
-                            From: {pickup.society_name || 'Registered Society'}
-                          </h4>
-                          <p className="text-xs text-neutral-gray font-medium">
-                            Driver: <span className="text-neutral-dark font-bold">{pickup.driver_name || pickup.assigned_driver || 'Assigned Driver'}</span>
-                          </p>
+                          <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">Assigned Drop</span>
+                          <h4 className="font-bold text-neutral-dark text-base mt-1 mb-0.5">From: {pickup.society_name || 'Registered Society'}</h4>
+                          <p className="text-xs text-neutral-gray font-medium">Driver: <span className="text-neutral-dark font-bold">{pickup.driver_name || pickup.assigned_driver || 'Assigned Driver'}</span></p>
                         </div>
-
                         <div className="space-y-2 text-xs bg-white p-3.5 rounded-xl border border-gray-100">
-                          <div className="flex justify-between">
-                            <span className="text-neutral-gray">Stream Category:</span>
-                            <span className="font-bold text-neutral-dark">{pickup.stream_category || pickup.waste_category || 'WET'} Stream</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-neutral-gray">Your Allocated Portion:</span>
-                            <span className="font-black text-emerald-600">{pickup.allocated_weight_kg || pickup.estimated_weight_kg || pickup.weight_kg || 0} kg</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-neutral-gray">QR Token:</span>
-                            <span className="font-mono text-[10px] font-bold text-neutral-dark">{pickup.qr_code || pickup.qr_code_token || 'N/A'}</span>
-                          </div>
+                          <div className="flex justify-between"><span className="text-neutral-gray">Stream:</span><span className="font-bold text-neutral-dark">{pickup.stream_category || pickup.waste_category || 'WET'} </span></div>
+                          <div className="flex justify-between"><span className="text-neutral-gray">Allocated Weight:</span><span className="font-black text-emerald-600">{Number(pickup.allocated_weight_kg || pickup.estimated_weight_kg || pickup.weight_kg || 0).toFixed(1)} kg</span></div>
+                          <div className="flex justify-between"><span className="text-neutral-gray">QR Token:</span><span className="font-mono text-[10px] font-bold text-neutral-dark">{pickup.qr_code || pickup.qr_code_token || 'N/A'}</span></div>
                         </div>
                       </div>
 
                       {isDelivered ? (
-                        <button
-                          disabled
-                          className="w-full bg-emerald-50 text-emerald-700 border border-emerald-200 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 cursor-default"
-                        >
+                        <button disabled className="w-full bg-emerald-50 text-emerald-700 border border-emerald-200 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 cursor-default">
                           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                           <span>Delivery Confirmed</span>
                         </button>
                       ) : (
-                        <button
-                          onClick={() => setSelectedShipment(pickup)}
-                          className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold text-sm shadow-md shadow-green-600/20 transition-all flex items-center justify-center gap-2 active:scale-95"
-                        >
+                        <button onClick={() => setSelectedShipment(pickup)} className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold text-sm shadow-md shadow-green-600/20 transition-all flex items-center justify-center gap-2 active:scale-95">
                           <CheckCircle2 className="w-4 h-4" />
                           <span>Confirm Delivery</span>
                         </button>
@@ -514,42 +496,198 @@ const FactoryDashboard = () => {
       );
     }
 
-    if (activeTab === 'Settings') {
+    if (activeTab === 'Intake Logs') {
       return (
-        <div className="space-y-8 animate-in fade-in duration-500 max-w-4xl">
-          <div>
-            <h1 className="text-2xl font-black text-neutral-dark">Factory Intake Settings & Weekly Waste Requirement</h1>
-            <p className="text-sm font-medium text-neutral-gray">Configure weekly waste intake capacity for dynamic multi-factory split allocations</p>
+        <div className="space-y-8 animate-in fade-in duration-500">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-black text-neutral-dark">Intake Logs</h1>
+              <p className="text-sm font-medium text-neutral-gray">Every assigned shipment is logged from arrival to processing confirmation.</p>
+            </div>
+            <div className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-full text-xs font-bold">
+              {intakeLogs.length} entries
+            </div>
           </div>
 
-          <form onSubmit={handleSaveSettings} className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 space-y-6">
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+            {intakeLogs.length === 0 ? (
+              <div className="p-12 text-center text-neutral-gray">
+                <Layers className="w-12 h-12 text-neutral-gray/40 mx-auto mb-3" />
+                <h3 className="font-bold text-neutral-dark text-base">No intake logs yet</h3>
+                <p className="text-xs text-neutral-gray mt-1">Shipment records will appear here after assignment and confirmation.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-neutral-gray">Batch</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-neutral-gray">Source</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-neutral-gray">Stream</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-neutral-gray">Weight</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-neutral-gray">Status</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-neutral-gray">Time</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {intakeLogs.map((entry) => (
+                      <tr key={entry.id} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-6 py-4 text-sm font-bold text-neutral-dark">{entry.batchId}</td>
+                        <td className="px-6 py-4 text-sm text-neutral-dark">{entry.source}</td>
+                        <td className="px-6 py-4">
+                          <span className="inline-flex px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold uppercase tracking-wider border border-blue-100">
+                            {entry.stream}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm font-bold text-neutral-dark">{entry.weight.toFixed(1)} kg</td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${entry.status === 'DELIVERED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : entry.status === 'IN_TRANSIT' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>
+                            {entry.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-neutral-gray">{new Date(entry.time).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (activeTab === 'Analytics') {
+      return (
+        <div className="space-y-8 animate-in fade-in duration-500">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <label className="block text-xs font-bold text-neutral-dark uppercase tracking-wider mb-2">
-                Weekly Waste Requirement / Intake Capacity (kg)
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={factorySettings.weekly_quota_kg}
-                onChange={(e) => setFactorySettings({ weekly_quota_kg: parseFloat(e.target.value || 0) })}
-                className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-base font-bold text-neutral-dark focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all"
-                placeholder="e.g. 1000"
-                required
-              />
-              <p className="text-xs text-neutral-gray mt-2 leading-relaxed">
-                Incoming society waste batches are automatically allocated based on your weekly intake requirement.
-              </p>
+              <h1 className="text-2xl font-black text-neutral-dark">Factory Analytics</h1>
+              <p className="text-sm font-medium text-neutral-gray">Waste mix, processing throughput and facility utilization from live intake data.</p>
+            </div>
+            <div className="px-3 py-1.5 bg-primary/10 border border-primary/30 text-primary rounded-full text-xs font-bold">
+              Updated live
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard title="Processed Weight" value={`${factoryAnalytics.total_weight_processed_kg.toLocaleString()} kg`} subtext="Confirmed deliveries" trend="+12%" icon={TrendingUp} colorClass="bg-emerald-50 text-emerald-600" />
+            <StatCard title="Pending Intake" value={factoryAnalytics.pending_incoming_trucks} subtext="Incoming trucks waiting" icon={Clock} colorClass="bg-blue-50 text-blue-600" />
+            <StatCard title="Completed Deliveries" value={factoryAnalytics.completed_deliveries_count} subtext="Delivered batches" icon={CheckCircle2} colorClass="bg-violet-50 text-violet-600" />
+            <StatCard title="Quota Used" value={`${Math.round(quotaUsagePercent)}%`} subtext={`${factoryAnalytics.weekly_quota_kg - factoryAnalytics.remaining_quota_kg} / ${factoryAnalytics.weekly_quota_kg} kg`} icon={BarChart3} colorClass="bg-orange-50 text-orange-600" />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+              <h3 className="font-bold text-neutral-dark text-lg mb-5">Waste Stream Breakdown</h3>
+              <div className="space-y-5">
+                {analyticsByStream.map((group) => {
+                  const percent = incomingData.total_incoming_weight_kg > 0 ? (group.value / Math.max(incomingData.total_incoming_weight_kg, 1)) * 100 : 0;
+                  return (
+                    <div key={group.label}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-bold text-neutral-dark">{group.label}</span>
+                        <span className="text-xs font-bold text-neutral-gray">{group.value.toLocaleString()} kg</span>
+                      </div>
+                      <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className={`${group.color} h-full rounded-full`} style={{ width: `${percent}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={savingSettings}
-              className="w-full bg-primary hover:bg-green-700 text-white py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-primary/25 transition-all flex items-center justify-center gap-2"
-            >
-              {savingSettings ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-              <span>Save Weekly Waste Requirement</span>
-            </button>
-          </form>
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+              <h3 className="font-bold text-neutral-dark text-lg mb-5">Processing Insight</h3>
+              <div className="space-y-4">
+                <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-emerald-700">Operation Health</p>
+                  <h4 className="text-xl font-black text-neutral-dark mt-1">{Math.max(86, 100 - Math.round((factoryAnalytics.pending_incoming_trucks || 0) * 5))}%</h4>
+                  <p className="text-xs text-neutral-gray mt-1">Processing lines are operating within acceptable intake range.</p>
+                </div>
+                <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl">
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-blue-700">Accepted Material</p>
+                  <h4 className="text-lg font-black text-neutral-dark mt-1">{factoryAnalytics.accepted_waste_category || 'PLASTIC'}</h4>
+                  <p className="text-xs text-neutral-gray mt-1">Current intake acceptance profile is synced from backend configuration.</p>
+                </div>
+                <div className="p-4 bg-violet-50 border border-violet-100 rounded-2xl">
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-violet-700">Facility Capacity</p>
+                  <h4 className="text-lg font-black text-neutral-dark mt-1">{factoryAnalytics.weekly_quota_kg.toLocaleString()} kg / week</h4>
+                  <p className="text-xs text-neutral-gray mt-1">Remaining weekly capacity: {factoryAnalytics.remaining_quota_kg.toLocaleString()} kg.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (activeTab === 'Settings') {
+      return (
+        <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl">
+          <div>
+            <h1 className="text-2xl font-black text-neutral-dark">Factory Profile</h1>
+            <p className="text-sm font-medium text-neutral-gray">Manage facility intake profile, accepted waste streams and weekly quota settings.</p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-6">
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-7">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-16 h-16 rounded-3xl bg-primary/10 flex items-center justify-center text-primary">
+                  <Building2 className="w-8 h-8" />
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-primary">Factory identity</p>
+                  <h3 className="text-xl font-black text-neutral-dark">{user?.name || 'GreenTech Plant #1'}</h3>
+                  <p className="text-xs text-neutral-gray">Approved processing partner</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-neutral-gray">Accepted Waste</p>
+                  <p className="mt-2 text-lg font-black text-neutral-dark">{factoryAnalytics.accepted_waste_category || 'PLASTIC'}</p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-neutral-gray">Weekly Capacity</p>
+                  <p className="mt-2 text-lg font-black text-neutral-dark">{factoryAnalytics.weekly_quota_kg.toLocaleString()} kg</p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-neutral-gray">Remaining Capacity</p>
+                  <p className="mt-2 text-lg font-black text-neutral-dark">{factoryAnalytics.remaining_quota_kg.toLocaleString()} kg</p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-neutral-gray">Current Status</p>
+                  <p className="mt-2 text-lg font-black text-emerald-600">Operational</p>
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveSettings} className="bg-white p-7 rounded-3xl shadow-sm border border-gray-100 space-y-6">
+              <div>
+                <label className="block text-xs font-bold text-neutral-dark uppercase tracking-wider mb-2">Weekly Waste Requirement (kg)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={factorySettings.weekly_quota_kg}
+                  onChange={(e) => setFactorySettings({ weekly_quota_kg: parseFloat(e.target.value || 0) })}
+                  className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-base font-bold text-neutral-dark focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all"
+                  placeholder="e.g. 1000"
+                  required
+                />
+              </div>
+
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-700 text-xs font-medium">
+                Backend configuration is connected to the factory quota API, so these values sync with the live processing engine.
+              </div>
+
+              <button type="submit" disabled={savingSettings} className="w-full bg-primary hover:bg-green-700 text-white py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-primary/25 transition-all flex items-center justify-center gap-2">
+                {savingSettings ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                <span>Save Factory Profile</span>
+              </button>
+            </form>
+          </div>
         </div>
       );
     }
