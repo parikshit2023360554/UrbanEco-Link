@@ -24,4 +24,12 @@ router.post(
   verifyCleanupTask
 );
 
+// Compatibility alias for finalized Supabase schema contract
+router.post(
+  '/verify',
+  authorize('NGO'),
+  validateTaskVerification,
+  verifyCleanupTask
+);
+
 export default router;

@@ -13,7 +13,7 @@ const sanitizeString = (str) => {
  */
 export const validateSignup = (req, res, next) => {
   const { name, email, password, role } = req.body;
-  const validRoles = ['RESIDENT', 'SOCIETY_ADMIN', 'NGO', 'FACTORY', 'DELIVERY_PARTNER'];
+  const validRoles = ['RESIDENT', 'SOCIETY_ADMIN', 'SOCIETY_INDIVIDUAL', 'NGO', 'FACTORY', 'DELIVERY_PARTNER', 'ADMIN'];
 
   if (!name || typeof name !== 'string' || name.trim().length === 0) {
     return res.status(400).json({ success: false, error: 'Valid full name is required.' });

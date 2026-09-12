@@ -20,6 +20,13 @@ export const autoAssignBatch = async (req, res, next) => {
   try {
     const { batch_id, society_user_id, waste_category, total_weight_kg } = req.body;
 
+    if (!batch_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'batch_id is required for batch auto-allocation.',
+      });
+    }
+
     if (!total_weight_kg || isNaN(parseFloat(total_weight_kg)) || parseFloat(total_weight_kg) <= 0) {
       return res.status(400).json({
         success: false,
@@ -33,17 +40,18 @@ export const autoAssignBatch = async (req, res, next) => {
     let societyLat = null;
     let societyLng = null;
     let societyName = 'Registered Society';
-    let targetBatchId = batch_id || null;
+    const targetBatchId = batch_id;
 
-    // Retrieve Society details & location
     if (society_user_id) {
       const addrRes = await client.query(
-        `SELECT a.latitude, a.longitude, u.society_name, u.name, u.full_name 
-         FROM users u 
-         LEFT JOIN addresses a ON u.id = a.user_id 
-         WHERE u.id = $1 LIMIT 1`,
+        `SELECT a.latitude, a.longitude, u.society_name, u.name, u.full_name
+         FROM users u
+         LEFT JOIN addresses a ON u.id = a.user_id
+         WHERE u.id = $1
+         LIMIT 1`,
         [society_user_id]
       );
+
       if (addrRes.rows.length > 0) {
         const row = addrRes.rows[0];
         societyName = row.society_name || row.name || row.full_name || societyName;
@@ -56,242 +64,170 @@ export const autoAssignBatch = async (req, res, next) => {
 
     if ((!societyLat || !societyLng) && targetBatchId) {
       const batchRes = await client.query(
-        `SELECT b.id, b.society_id, b.society_name, a.latitude, a.longitude 
-         FROM batches b 
-         LEFT JOIN addresses a ON (b.society_id = a.user_id OR b.user_id = a.user_id) 
-         WHERE b.id::text = $1 LIMIT 1`,
-        [String(targetBatchId)]
+        `SELECT b.id, b.society_name, a.latitude, a.longitude
+         FROM batches b
+         LEFT JOIN addresses a ON a.user_id = b.society_id
+         WHERE b.id = $1
+         LIMIT 1`,
+        [targetBatchId]
       );
+
       if (batchRes.rows.length > 0) {
-        const bRow = batchRes.rows[0];
-        if (bRow.society_name) societyName = bRow.society_name;
-        if (bRow.latitude && bRow.longitude) {
-          societyLat = parseFloat(bRow.latitude);
-          societyLng = parseFloat(bRow.longitude);
+        const row = batchRes.rows[0];
+        if (row.society_name) societyName = row.society_name;
+        if (row.latitude && row.longitude) {
+          societyLat = parseFloat(row.latitude);
+          societyLng = parseFloat(row.longitude);
         }
       }
     }
 
-    // Default S2 Hub (New Delhi center) if non-geocoded
     if (!societyLat || !societyLng) {
       societyLat = 28.613939;
       societyLng = 77.209021;
     }
 
-    // Compute S2 Cell Token (Level 13 ~ 0.5km^2) and 8 surrounding spatial neighbors
     const societyS2Token = getS2Token(societyLat, societyLng, 13);
     const targetS2Tokens = getS2CellWithNeighbors(societyLat, societyLng, 13);
 
-    if (society_user_id) {
-      await client.query(
-        'UPDATE addresses SET s2_cell_token = $1 WHERE user_id = $2',
-        [societyS2Token, society_user_id]
-      );
-    }
-
-    // Query active candidate factories (if remaining_quota_kg is 0, fall back to weekly_quota_kg)
     const factoryQuery = `
-      SELECT 
-        u.id as factory_user_id,
-        u.name as user_name,
+      SELECT
+        fp.user_id AS factory_user_id,
         fp.factory_name,
-        fp.contact_person,
-        CASE 
-          WHEN COALESCE(fp.remaining_quota_kg, 0) > 0 THEN fp.remaining_quota_kg
-          ELSE COALESCE(fp.weekly_quota_kg, 1000)
-        END as remaining_quota_kg,
-        COALESCE(fp.weekly_quota_kg, 1000) as weekly_quota_kg,
+        fp.accepted_waste_category,
+        fp.remaining_quota_kg,
+        fp.daily_quota_kg,
         a.latitude,
         a.longitude,
         a.s2_cell_token
-      FROM users u
-      LEFT JOIN factory_profiles fp ON (u.id = fp.user_id OR u.id::text = fp.user_id::text)
-      LEFT JOIN addresses a ON (u.id = a.user_id OR u.id::text = a.user_id::text)
-      WHERE u.role = 'FACTORY' OR u.role = 'ORG'
+      FROM factory_profiles fp
+      LEFT JOIN addresses a ON a.user_id = fp.user_id
+      WHERE COALESCE(fp.remaining_quota_kg, 0) > 0
+        AND (
+          LOWER(COALESCE(fp.accepted_waste_category, '')) = LOWER($1)
+          OR LOWER(COALESCE(fp.accepted_waste_category, '')) = 'plastic'
+          OR $1 = 'ALL'
+        )
     `;
 
-    const factoryRes = await client.query(factoryQuery);
-    let candidateFactories = factoryRes.rows;
+    const factoryRes = await client.query(factoryQuery, [category]);
+    let candidateFactories = factoryRes.rows
+      .map((factory) => {
+        const latitude = factory.latitude !== null && factory.latitude !== undefined ? parseFloat(factory.latitude) : null;
+        const longitude = factory.longitude !== null && factory.longitude !== undefined ? parseFloat(factory.longitude) : null;
+        const distanceKm = latitude && longitude
+          ? parseFloat(getHaversineDistanceKm(societyLat, societyLng, latitude, longitude).toFixed(3))
+          : Number.POSITIVE_INFINITY;
 
-    // Prioritize spatial matches while keeping all registered factories eligible
-    const spatialMatchedFactories = candidateFactories.filter(
-      (f) => f.s2_cell_token && targetS2Tokens.includes(f.s2_cell_token)
-    );
-
-    const otherFactories = candidateFactories.filter(
-      (f) => !f.s2_cell_token || !targetS2Tokens.includes(f.s2_cell_token)
-    );
-
-    candidateFactories = [...spatialMatchedFactories, ...otherFactories];
+        return {
+          ...factory,
+          latitude,
+          longitude,
+          distance_km: distanceKm,
+          s2_cell_token: factory.s2_cell_token || getS2Token(latitude || societyLat, longitude || societyLng, 13),
+          remaining_quota_kg: parseFloat(factory.remaining_quota_kg || 0),
+        };
+      })
+      .filter((factory) => factory.remaining_quota_kg > 0)
+      .sort((a, b) => (a.distance_km || Number.POSITIVE_INFINITY) - (b.distance_km || Number.POSITIVE_INFINITY));
 
     if (candidateFactories.length === 0) {
       return res.status(404).json({
         success: false,
-        error: `No candidate factories found in database.`,
+        error: 'No candidate factories found with remaining quota for the requested waste stream.',
         s2_cell_token: societyS2Token,
       });
     }
 
-    // Map candidate factories with location & capacity details
-    candidateFactories = candidateFactories.map((factory, idx) => {
-      const fLat = factory.latitude ? parseFloat(factory.latitude) : societyLat + (0.01 * (idx + 1));
-      const fLng = factory.longitude ? parseFloat(factory.longitude) : societyLng + (0.01 * (idx + 1));
-      const dist = parseFloat(getHaversineDistanceKm(societyLat, societyLng, fLat, fLng).toFixed(2));
-      const factoryS2 = getS2Token(fLat, fLng, 13);
-      return {
-        ...factory,
-        latitude: fLat,
-        longitude: fLng,
-        distance_km: dist,
-        s2_cell_token: factory.s2_cell_token || factoryS2,
-        remaining_quota_kg: parseFloat(factory.remaining_quota_kg),
-      };
+    const prioritizedFactories = candidateFactories.sort((a, b) => {
+      const aMatch = a.s2_cell_token && targetS2Tokens.includes(a.s2_cell_token) ? 0 : 1;
+      const bMatch = b.s2_cell_token && targetS2Tokens.includes(b.s2_cell_token) ? 0 : 1;
+      if (aMatch !== bMatch) return aMatch - bMatch;
+      return (a.distance_km || Number.POSITIVE_INFINITY) - (b.distance_km || Number.POSITIVE_INFINITY);
     });
 
-    // Execute Waterfall Split Allocation in Postgres Transaction
     await client.query('BEGIN');
 
-    let unallocatedWeight = totalWeightKg;
+    let remainingBatchWeight = totalWeightKg;
     const allocations = [];
+    let dropOrder = 1;
 
-    // Check if any single factory can take 100% of totalWeightKg
-    const singleFitFactory = candidateFactories.find(
-      (f) => parseFloat(f.remaining_quota_kg || 0) >= totalWeightKg
-    );
+    for (const factory of prioritizedFactories) {
+      if (remainingBatchWeight <= 0) break;
 
-    // If a single factory can take the full payload, deliver 100% to that factory.
-    // Otherwise, split across 2, 3, or 4 candidate factories based on capacity.
-    const maxPerFactory = singleFitFactory 
-      ? totalWeightKg 
-      : Math.max(10, Math.ceil(totalWeightKg / Math.min(Math.max(candidateFactories.length, 1), 3)));
-
-    const routeStops = [
-      {
-        stop_number: 1,
-        type: 'PICKUP',
-        title: `Pickup from ${societyName}`,
-        society_name: societyName,
-        society_user_id,
-        latitude: societyLat,
-        longitude: societyLng,
-        weight_kg: totalWeightKg,
-        s2_cell_token: societyS2Token,
-      },
-    ];
-
-    let dropIndex = 1;
-    for (const factory of candidateFactories) {
-      if (unallocatedWeight <= 0) break;
-
-      const availableQuota = factory.remaining_quota_kg;
+      const availableQuota = parseFloat(factory.remaining_quota_kg || 0);
       if (availableQuota <= 0) continue;
 
-      const assignedAmount = parseFloat(Math.min(unallocatedWeight, availableQuota, maxPerFactory).toFixed(2));
-      const newRemainingQuota = parseFloat((availableQuota - assignedAmount).toFixed(2));
+      const allocatedWeight = Math.min(remainingBatchWeight, availableQuota);
+      const nextQuota = parseFloat((availableQuota - allocatedWeight).toFixed(2));
 
-      // Decrement factory remaining daily quota
       await client.query(
-        `UPDATE factory_profiles 
-         SET remaining_quota_kg = $1, s2_cell_token = $2 
-         WHERE user_id::text = $3::text OR id::text = $3::text`,
-        [newRemainingQuota, factory.s2_cell_token, String(factory.factory_user_id)]
+        `UPDATE factory_profiles
+         SET remaining_quota_kg = $1,
+             s2_cell_token = COALESCE($2, s2_cell_token)
+         WHERE user_id = $3`,
+        [nextQuota, factory.s2_cell_token || null, factory.factory_user_id]
       );
 
-      // Insert split allocation record
-      const allocInsertRes = await client.query(
+      const allocationResult = await client.query(
         `INSERT INTO batch_allocations (
-           batch_id, factory_user_id, factory_id, allocated_weight_kg, distance_km, s2_cell_token, drop_order, status
-         )
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 'ASSIGNED')
-         RETURNING id, allocated_at`,
+            batch_id,
+            factory_user_id,
+            allocated_weight_kg,
+            distance_km,
+            s2_cell_token,
+            drop_order,
+            status,
+            allocated_at
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, 'ASSIGNED', NOW())
+          RETURNING id, allocated_weight_kg, distance_km, drop_order`,
         [
-          targetBatchId || null,
-          String(factory.factory_user_id),
-          String(factory.factory_user_id),
-          assignedAmount,
-          factory.distance_km,
-          factory.s2_cell_token,
-          dropIndex,
+          targetBatchId,
+          factory.factory_user_id,
+          parseFloat(allocatedWeight.toFixed(2)),
+          parseFloat((factory.distance_km || 0).toFixed(3)),
+          factory.s2_cell_token || societyS2Token,
+          dropOrder,
         ]
       );
 
-      unallocatedWeight = parseFloat((unallocatedWeight - assignedAmount).toFixed(2));
-
-      const factoryDisplayName = factory.factory_name || factory.user_name || `Recycling Factory ${dropIndex}`;
-
+      const allocation = allocationResult.rows[0];
       allocations.push({
-        allocation_id: allocInsertRes.rows[0].id,
-        drop_order: dropIndex,
+        allocation_id: allocation.id,
         factory_user_id: factory.factory_user_id,
-        factory_name: factoryDisplayName,
-        allocated_weight_kg: assignedAmount,
-        distance_km: factory.distance_km,
-        remaining_quota_kg: newRemainingQuota,
-        s2_cell_token: factory.s2_cell_token,
+        factory_name: factory.factory_name,
+        allocated_weight_kg: parseFloat(allocation.allocated_weight_kg),
+        distance_km: parseFloat(allocation.distance_km),
+        drop_order: allocation.drop_order,
+        remaining_quota_kg: nextQuota,
+        s2_cell_token: factory.s2_cell_token || societyS2Token,
       });
 
-      routeStops.push({
-        stop_number: dropIndex + 1,
-        type: 'DROP',
-        drop_order: dropIndex,
-        title: `Drop ${dropIndex} at ${factoryDisplayName}`,
-        factory_name: factoryDisplayName,
-        factory_user_id: factory.factory_user_id,
-        allocated_weight_kg: assignedAmount,
-        distance_km: factory.distance_km,
-        latitude: factory.latitude,
-        longitude: factory.longitude,
-        s2_cell_token: factory.s2_cell_token,
-      });
-
-      dropIndex++;
+      remainingBatchWeight = parseFloat((remainingBatchWeight - allocatedWeight).toFixed(2));
+      dropOrder += 1;
     }
 
-    // Update batch status to PENDING_PICKUP awaiting driver scan
-    if (targetBatchId) {
-      await client.query(
-        "UPDATE batches SET status = 'PENDING_PICKUP', factory_id = $1 WHERE id::text = $2",
-        [allocations[0]?.factory_user_id || null, String(targetBatchId)]
-      );
-    }
-
-    // Create single unified Delivery Route for driver with ordered stops
-    const routeInsertRes = await client.query(
-      `INSERT INTO delivery_routes (route_name, s2_cell_token, stops, total_weight_kg, total_distance_km, status)
-       VALUES ($1, $2, $3, $4, $5, 'ASSIGNED')
-       RETURNING id, created_at`,
-      [
-        `Dynamic Route: ${societyName} -> ${allocations.length} Factory Drops`,
-        societyS2Token,
-        JSON.stringify(routeStops),
-        totalWeightKg,
-        allocations.reduce((sum, a) => sum + a.distance_km, 0),
-      ]
+    await client.query(
+      `UPDATE batches
+       SET unallocated_weight_kg = $1
+       WHERE id = $2`,
+      [remainingBatchWeight, targetBatchId]
     );
 
     await client.query('COMMIT');
 
     return res.status(200).json({
       success: true,
-      message: `Waterfall split complete! Assigned 1 batch across ${allocations.length} factory delivery drop(s).`,
-      route_id: routeInsertRes.rows[0].id,
+      message: 'Waterfall split allocation completed.',
       batch_id: targetBatchId,
       total_weight_kg: totalWeightKg,
-      unallocated_weight_kg: unallocatedWeight,
-      is_fully_allocated: unallocatedWeight === 0,
-      society_info: {
-        society_name: societyName,
-        latitude: societyLat,
-        longitude: societyLng,
-        s2_cell_token: societyS2Token,
-      },
-      drops_count: allocations.length,
+      unallocated_weight_kg: parseFloat(remainingBatchWeight.toFixed(2)),
       allocations,
-      route_waypoints: routeStops,
+      candidates_considered: prioritizedFactories.length,
     });
-
   } catch (err) {
-    await client.query('ROLLBACK');
+    await client.query('ROLLBACK').catch(() => {});
     next(err);
   } finally {
     client.release();

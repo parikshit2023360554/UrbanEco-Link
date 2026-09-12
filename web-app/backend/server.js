@@ -26,16 +26,34 @@ const allowedOrigins = (process.env.CORS_ORIGIN || '')
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+const matchesOriginPattern = (origin, pattern) => {
+  if (!origin || !pattern) return false;
+
+  if (pattern === '*') return true;
+
+  const normalizedPattern = pattern.toLowerCase();
+  const normalizedOrigin = origin.toLowerCase();
+
+  if (normalizedPattern === normalizedOrigin) return true;
+
+  if (normalizedPattern.includes('*')) {
+    const escaped = normalizedPattern.replace(/[|\\{}()[\]^$+?.]/g, '\\$&');
+    const regex = new RegExp(`^${escaped.replace(/\*/g, '.*')}$`, 'i');
+    return regex.test(normalizedOrigin);
+  }
+
+  return false;
+};
+
 const isAllowedOrigin = (origin) => {
   if (!origin) return true;
-  if (allowedOrigins.length === 0 || allowedOrigins.includes('*')) return true;
+  if (allowedOrigins.length === 0) return true;
+
+  if (allowedOrigins.includes('*')) return true;
+
   if (allowedOrigins.includes(origin)) return true;
 
-  const normalized = origin.toLowerCase();
-  const isLocalhostOrigin = normalized.includes('localhost') || normalized.includes('127.0.0.1');
-  const isCodespacesOrigin = normalized.includes('.app.github.dev');
-
-  return isLocalhostOrigin || isCodespacesOrigin;
+  return allowedOrigins.some((pattern) => matchesOriginPattern(origin, pattern));
 };
 
 // Connect & Verify PostgreSQL + PostGIS Database
@@ -136,6 +154,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/v1/bwg', bwgRoutes);
 app.use('/api/v1/civic', civicRoutes);
 app.use('/api/v1/tasks', taskRoutes);
+app.use('/api/cleanup', taskRoutes);
 app.use('/api/v1/pickups', pickupRoutes);
 app.use('/api/pickups', pickupRoutes);
 app.use('/api/v1/batches', batchRoutes);

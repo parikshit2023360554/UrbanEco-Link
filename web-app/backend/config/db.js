@@ -5,20 +5,20 @@ dotenv.config();
 
 const { Pool } = pg;
 
-// Prefer a hosted database URL, while keeping the local fallback for development.
+// Prefer hosted database URL (Supabase/Neon), fallback to local development
 const connectionString =
   process.env.DATABASE_URL ||
   process.env.SUPABASE_DB_URL ||
   'postgresql://postgres:postgres@localhost:5432/urbaneco_db';
 
-const isHostedDatabase = /supabase\.co|supabase\.com/i.test(connectionString);
+const isHostedDatabase = /supabase\.co|supabase\.com|neon\.tech|render\.com/i.test(connectionString);
 
 const pool = new Pool({
   connectionString,
   ssl: isHostedDatabase || process.env.DATABASE_SSL === 'true'
     ? { rejectUnauthorized: false }
     : false,
-  max: 20, // Maximum pool connections
+  max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
 });
@@ -28,24 +28,26 @@ pool.on('error', (err) => {
 });
 
 /**
- * Test DB Connection & Verify PostGIS Extension
+ * Test DB Connection & Verify / Migrate Production Schema
  */
 export const connectDB = async () => {
+  let client;
   try {
-    const client = await pool.connect();
+    client = await pool.connect();
 
+    // 1. Initialize Extensions
+    await client.query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";');
     await client.query('CREATE EXTENSION IF NOT EXISTS postgis;');
 
-    // Verify PostGIS extension
     try {
-      const gisCheck = await client.query("SELECT PostGIS_Full_Version();");
+      const gisCheck = await client.query('SELECT PostGIS_Full_Version();');
       console.log('✅ Connected to UrbanEco PostgreSQL Database');
       console.log(`🗺️ PostGIS Spatial Extension Verified: ${gisCheck.rows[0].postgis_full_version.split(' ')[0]}`);
     } catch {
       console.log('✅ Connected to UrbanEco PostgreSQL Database');
     }
 
-    // Auto-migrate DELIVERY_PARTNER enum value if not present
+    // 2. Enum Upgrades & Role Checks
     try {
       await client.query(`
         DO $$ BEGIN
@@ -56,18 +58,20 @@ export const connectDB = async () => {
         END $$;
       `);
     } catch (e) {
-      // Ignore if enum type doesn't exist yet or already updated
+      // Ignore if enum doesn't exist
     }
 
-    // Ensure users table exists with required columns
+    // 3. Core Users Table
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255),
+        full_name VARCHAR(255),
         email VARCHAR(255) UNIQUE NOT NULL,
         password_hash VARCHAR(255),
         role VARCHAR(50) NOT NULL DEFAULT 'RESIDENT',
         society_name VARCHAR(255),
+        eco_points INTEGER DEFAULT 0,
         trust_score INTEGER DEFAULT 100 CHECK (trust_score >= 0),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
@@ -78,6 +82,7 @@ export const connectDB = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS society_name VARCHAR(255);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS eco_points INTEGER DEFAULT 0;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS trust_score INTEGER DEFAULT 100;
+
       DO $$ 
       BEGIN 
         ALTER TABLE users ALTER COLUMN full_name DROP NOT NULL;
@@ -85,15 +90,17 @@ export const connectDB = async () => {
       END $$;
 
       ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
-      ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role::text IN ('RESIDENT', 'SOCIETY_ADMIN', 'SOCIETY_INDIVIDUAL', 'NGO', 'FACTORY', 'DELIVERY_PARTNER', 'ADMIN'));
+      ALTER TABLE users ADD CONSTRAINT users_role_check 
+        CHECK (role::text IN ('RESIDENT', 'SOCIETY_ADMIN', 'SOCIETY_INDIVIDUAL', 'NGO', 'FACTORY', 'DELIVERY_PARTNER', 'ADMIN'));
     `);
 
-    // Detect whether users.id is UUID or INTEGER in active Postgres database
+    // 4. Detect User ID Type (UUID or SERIAL) for polymorphic Foreign Keys
     const userColumnCheck = await client.query(
       "SELECT data_type FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'id'"
     );
     const userIdType = userColumnCheck.rows[0]?.data_type === 'uuid' ? 'UUID' : 'INTEGER';
 
+    // 5. Addresses & Specialized Profiles
     await client.query(`
       CREATE TABLE IF NOT EXISTS addresses (
         id SERIAL PRIMARY KEY,
@@ -106,13 +113,19 @@ export const connectDB = async () => {
         country VARCHAR(100) DEFAULT 'India',
         latitude NUMERIC(10, 7),
         longitude NUMERIC(10, 7),
+        s2_cell_token VARCHAR(50),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
+
       ALTER TABLE addresses ADD COLUMN IF NOT EXISTS street VARCHAR(255);
       ALTER TABLE addresses ADD COLUMN IF NOT EXISTS street_address VARCHAR(255);
+      ALTER TABLE addresses ADD COLUMN IF NOT EXISTS city VARCHAR(100);
+      ALTER TABLE addresses ADD COLUMN IF NOT EXISTS state VARCHAR(100);
+      ALTER TABLE addresses ADD COLUMN IF NOT EXISTS pincode VARCHAR(20);
       ALTER TABLE addresses ADD COLUMN IF NOT EXISTS country VARCHAR(100) DEFAULT 'India';
       ALTER TABLE addresses ADD COLUMN IF NOT EXISTS latitude NUMERIC(10, 7);
       ALTER TABLE addresses ADD COLUMN IF NOT EXISTS longitude NUMERIC(10, 7);
+      ALTER TABLE addresses ADD COLUMN IF NOT EXISTS s2_cell_token VARCHAR(50);
 
       CREATE TABLE IF NOT EXISTS society_profiles (
         id SERIAL PRIMARY KEY,
@@ -120,12 +133,13 @@ export const connectDB = async () => {
         society_name VARCHAR(255),
         org_name VARCHAR(255),
         building_type VARCHAR(100),
-        total_flats INTEGER,
+        total_flats INTEGER DEFAULT 0,
         contact_number VARCHAR(50),
         phone_number VARCHAR(50),
         registration_number VARCHAR(100),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
+
       ALTER TABLE society_profiles ADD COLUMN IF NOT EXISTS society_name VARCHAR(255);
       ALTER TABLE society_profiles ADD COLUMN IF NOT EXISTS org_name VARCHAR(255);
       ALTER TABLE society_profiles ADD COLUMN IF NOT EXISTS building_type VARCHAR(100);
@@ -140,8 +154,9 @@ export const connectDB = async () => {
         factory_name VARCHAR(255),
         license_number VARCHAR(100),
         processing_capacity_tons NUMERIC(10, 2),
-        accepted_waste_category VARCHAR(100),
+        accepted_waste_category VARCHAR(100) DEFAULT 'PLASTIC',
         daily_quota_kg NUMERIC(10, 2),
+        weekly_quota_kg NUMERIC(10, 2) DEFAULT 1000.00,
         remaining_quota_kg NUMERIC(10, 2),
         s2_cell_token VARCHAR(50),
         contact_person VARCHAR(255),
@@ -149,10 +164,12 @@ export const connectDB = async () => {
         phone_number VARCHAR(50),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
+
       ALTER TABLE factory_profiles ADD COLUMN IF NOT EXISTS license_number VARCHAR(100);
       ALTER TABLE factory_profiles ADD COLUMN IF NOT EXISTS processing_capacity_tons NUMERIC(10, 2);
-      ALTER TABLE factory_profiles ADD COLUMN IF NOT EXISTS accepted_waste_category VARCHAR(100);
+      ALTER TABLE factory_profiles ADD COLUMN IF NOT EXISTS accepted_waste_category VARCHAR(100) DEFAULT 'PLASTIC';
       ALTER TABLE factory_profiles ADD COLUMN IF NOT EXISTS daily_quota_kg NUMERIC(10, 2);
+      ALTER TABLE factory_profiles ADD COLUMN IF NOT EXISTS weekly_quota_kg NUMERIC(10, 2) DEFAULT 1000.00;
       ALTER TABLE factory_profiles ADD COLUMN IF NOT EXISTS remaining_quota_kg NUMERIC(10, 2);
       ALTER TABLE factory_profiles ADD COLUMN IF NOT EXISTS s2_cell_token VARCHAR(50);
       ALTER TABLE factory_profiles ADD COLUMN IF NOT EXISTS phone_number VARCHAR(50);
@@ -172,6 +189,7 @@ export const connectDB = async () => {
         current_longitude NUMERIC(10, 7),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
+
       ALTER TABLE delivery_partner_profiles ADD COLUMN IF NOT EXISTS driver_name VARCHAR(255);
       ALTER TABLE delivery_partner_profiles ADD COLUMN IF NOT EXISTS vehicle_type VARCHAR(100);
       ALTER TABLE delivery_partner_profiles ADD COLUMN IF NOT EXISTS vehicle_number VARCHAR(50);
@@ -191,17 +209,45 @@ export const connectDB = async () => {
         phone_number VARCHAR(50),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
+
       ALTER TABLE ngo_profiles ADD COLUMN IF NOT EXISTS darpan_id VARCHAR(100);
       ALTER TABLE ngo_profiles ADD COLUMN IF NOT EXISTS focus_area VARCHAR(100);
       ALTER TABLE ngo_profiles ADD COLUMN IF NOT EXISTS contact_person VARCHAR(255);
       ALTER TABLE ngo_profiles ADD COLUMN IF NOT EXISTS phone_number VARCHAR(50);
     `);
 
-    // Ensure pickups & batches tables exist
+    // 6. Smart Bins & Residential Waste Logs (Pillar 1)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS smart_bins (
+        id SERIAL PRIMARY KEY,
+        society_id ${userIdType} REFERENCES users(id) ON DELETE CASCADE,
+        bin_code VARCHAR(50) UNIQUE NOT NULL,
+        waste_category VARCHAR(50) NOT NULL,
+        max_weight_kg NUMERIC(8, 2) NOT NULL DEFAULT 100.00,
+        current_weight_kg NUMERIC(8, 2) DEFAULT 0.00,
+        fill_percentage NUMERIC(5, 2) DEFAULT 0.00,
+        last_ping TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        is_active BOOLEAN DEFAULT TRUE
+      );
+
+      CREATE TABLE IF NOT EXISTS waste_logs (
+        id SERIAL PRIMARY KEY,
+        user_id ${userIdType} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        stream_category VARCHAR(50) NOT NULL CHECK (stream_category IN ('WET','DRY','SANITARY','HAZARDOUS')),
+        estimated_volume_liters NUMERIC(10, 2) NOT NULL CHECK (estimated_volume_liters >= 0),
+        estimated_mass_kg NUMERIC(10, 2) NOT NULL CHECK (estimated_mass_kg >= 0),
+        density_coefficient NUMERIC(5, 2) NOT NULL DEFAULT 0.40,
+        capacity_triggered BOOLEAN DEFAULT FALSE,
+        notes TEXT,
+        logged_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 7. Pickups, Batches, & Route Dispatch Engines
     await client.query(`
       CREATE TABLE IF NOT EXISTS pickups (
         id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        user_id VARCHAR(255),
         society_name VARCHAR(255),
         stream_category VARCHAR(50) NOT NULL,
         estimated_weight_kg NUMERIC(10, 2) NOT NULL CHECK (estimated_weight_kg >= 0),
@@ -211,98 +257,51 @@ export const connectDB = async () => {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         scanned_at TIMESTAMP WITH TIME ZONE
       );
-      ALTER TABLE pickups ADD COLUMN IF NOT EXISTS id SERIAL;
-      ALTER TABLE pickups ADD COLUMN IF NOT EXISTS user_id VARCHAR(255);
-      ALTER TABLE pickups ADD COLUMN IF NOT EXISTS society_name VARCHAR(255);
-      ALTER TABLE pickups ADD COLUMN IF NOT EXISTS assigned_driver VARCHAR(255) DEFAULT 'Unassigned';
-      DO $$ 
-      BEGIN 
-        ALTER TABLE pickups ALTER COLUMN user_id TYPE VARCHAR(255) USING user_id::text;
-      EXCEPTION WHEN OTHERS THEN NULL;
-      END $$;
 
       CREATE TABLE IF NOT EXISTS batches (
         id SERIAL PRIMARY KEY,
-        society_id INTEGER,
+        society_id ${userIdType},
+        society_user_id ${userIdType},
+        user_id ${userIdType},
         society_name VARCHAR(255),
-        stream_category VARCHAR(50) NOT NULL,
-        weight_kg NUMERIC(10, 2) NOT NULL,
-        qr_code VARCHAR(255) UNIQUE NOT NULL,
+        stream_category VARCHAR(50),
+        waste_category VARCHAR(50),
+        weight_kg NUMERIC(10, 2),
+        total_weight_kg NUMERIC(10, 2),
+        unallocated_weight_kg NUMERIC(10, 2),
+        gate_scale_weight_kg NUMERIC(10, 2),
+        qr_code VARCHAR(255) UNIQUE,
         status VARCHAR(50) DEFAULT 'PENDING_PICKUP',
-        driver_id INTEGER,
+        driver_id ${userIdType},
         driver_name VARCHAR(255),
-        factory_id INTEGER,
+        factory_id ${userIdType},
         points_awarded INTEGER DEFAULT 0,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         picked_up_at TIMESTAMP WITH TIME ZONE,
         delivered_at TIMESTAMP WITH TIME ZONE
       );
 
-      ALTER TABLE batches ADD COLUMN IF NOT EXISTS id SERIAL;
-      ALTER TABLE batches ADD COLUMN IF NOT EXISTS society_id ${userIdType};
-      ALTER TABLE batches ADD COLUMN IF NOT EXISTS society_user_id ${userIdType};
-      ALTER TABLE batches ADD COLUMN IF NOT EXISTS user_id ${userIdType};
-      ALTER TABLE batches ADD COLUMN IF NOT EXISTS society_name VARCHAR(255);
-      ALTER TABLE batches ADD COLUMN IF NOT EXISTS waste_category VARCHAR(50);
-      ALTER TABLE batches ADD COLUMN IF NOT EXISTS stream_category VARCHAR(50);
-      ALTER TABLE batches ADD COLUMN IF NOT EXISTS total_weight_kg NUMERIC(10, 2);
+      ALTER TABLE batches ADD COLUMN IF NOT EXISTS gate_scale_weight_kg NUMERIC(10, 2);
       ALTER TABLE batches ADD COLUMN IF NOT EXISTS unallocated_weight_kg NUMERIC(10, 2);
-      ALTER TABLE batches ADD COLUMN IF NOT EXISTS weight_kg NUMERIC(10, 2);
-      ALTER TABLE batches ADD COLUMN IF NOT EXISTS qr_code VARCHAR(255);
-      ALTER TABLE batches ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'PENDING_PICKUP';
-      ALTER TABLE batches ADD COLUMN IF NOT EXISTS driver_id ${userIdType};
-      ALTER TABLE batches ADD COLUMN IF NOT EXISTS driver_name VARCHAR(255);
-      ALTER TABLE batches ADD COLUMN IF NOT EXISTS factory_id ${userIdType};
-      ALTER TABLE batches ADD COLUMN IF NOT EXISTS points_awarded INTEGER DEFAULT 0;
-      ALTER TABLE batches ADD COLUMN IF NOT EXISTS picked_up_at TIMESTAMP WITH TIME ZONE;
-      ALTER TABLE batches ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP WITH TIME ZONE;
-      DO $$ 
-      BEGIN 
-        ALTER TABLE batches ALTER COLUMN waste_category DROP NOT NULL;
-        ALTER TABLE batches ALTER COLUMN total_weight_kg DROP NOT NULL;
-        ALTER TABLE batches ALTER COLUMN unallocated_weight_kg DROP NOT NULL;
-        ALTER TABLE batches ALTER COLUMN weight_kg DROP NOT NULL;
-        ALTER TABLE batches ALTER COLUMN stream_category DROP NOT NULL;
-      EXCEPTION WHEN OTHERS THEN NULL;
-      END $$;
-
-      CREATE TABLE IF NOT EXISTS civic_reports (
-        id SERIAL PRIMARY KEY,
-        reporter_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-        description TEXT,
-        waste_type VARCHAR(50) DEFAULT 'DRY',
-        before_image_url TEXT,
-        location GEOGRAPHY(Point, 4326),
-        status VARCHAR(50) DEFAULT 'PENDING',
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        reported_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-      );
-
-      ALTER TABLE civic_reports ADD COLUMN IF NOT EXISTS description TEXT;
-      ALTER TABLE civic_reports ADD COLUMN IF NOT EXISTS waste_type VARCHAR(50) DEFAULT 'DRY';
-      ALTER TABLE civic_reports ADD COLUMN IF NOT EXISTS id SERIAL;
-      ALTER TABLE civic_reports ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+      ALTER TABLE batches ADD COLUMN IF NOT EXISTS total_weight_kg NUMERIC(10, 2);
 
       CREATE TABLE IF NOT EXISTS batch_allocations (
         id SERIAL PRIMARY KEY,
         batch_id INTEGER REFERENCES batches(id) ON DELETE CASCADE,
         factory_user_id ${userIdType} REFERENCES users(id) ON DELETE CASCADE,
         allocated_weight_kg NUMERIC(10, 2) NOT NULL,
+        received_weight_kg NUMERIC(10, 2),
         distance_km NUMERIC(10, 3),
         s2_cell_token VARCHAR(50),
         drop_order INTEGER DEFAULT 1,
         status VARCHAR(50) DEFAULT 'ASSIGNED',
-        allocated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        handover_manifest_qr VARCHAR(255),
+        allocated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        confirmed_at TIMESTAMP WITH TIME ZONE
       );
-      ALTER TABLE batch_allocations ADD COLUMN IF NOT EXISTS id SERIAL;
-      ALTER TABLE batch_allocations ADD COLUMN IF NOT EXISTS factory_user_id ${userIdType};
-      ALTER TABLE batch_allocations ADD COLUMN IF NOT EXISTS factory_id ${userIdType};
-      ALTER TABLE batch_allocations ADD COLUMN IF NOT EXISTS distance_km NUMERIC(10, 3);
-      ALTER TABLE batch_allocations ADD COLUMN IF NOT EXISTS s2_cell_token VARCHAR(50);
-      ALTER TABLE batch_allocations ADD COLUMN IF NOT EXISTS drop_order INTEGER DEFAULT 1;
-      ALTER TABLE batch_allocations ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'ASSIGNED';
-      ALTER TABLE batch_allocations ADD COLUMN IF NOT EXISTS allocated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
-      ALTER TABLE batch_allocations ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMP WITH TIME ZONE;
+
+      ALTER TABLE batch_allocations ADD COLUMN IF NOT EXISTS received_weight_kg NUMERIC(10, 2);
+      ALTER TABLE batch_allocations ADD COLUMN IF NOT EXISTS handover_manifest_qr VARCHAR(255);
 
       CREATE TABLE IF NOT EXISTS delivery_routes (
         id SERIAL PRIMARY KEY,
@@ -315,23 +314,68 @@ export const connectDB = async () => {
         status VARCHAR(50) DEFAULT 'ASSIGNED',
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
-      ALTER TABLE factory_profiles ADD COLUMN IF NOT EXISTS daily_quota_kg NUMERIC(10, 2);
-      ALTER TABLE factory_profiles ADD COLUMN IF NOT EXISTS weekly_quota_kg NUMERIC(10, 2) DEFAULT 1000.00;
-      ALTER TABLE factory_profiles ADD COLUMN IF NOT EXISTS remaining_quota_kg NUMERIC(10, 2);
-      ALTER TABLE factory_profiles ADD COLUMN IF NOT EXISTS accepted_waste_category VARCHAR(100) DEFAULT 'PLASTIC';
-      ALTER TABLE factory_profiles ADD COLUMN IF NOT EXISTS s2_cell_token VARCHAR(50);
-      ALTER TABLE addresses ADD COLUMN IF NOT EXISTS s2_cell_token VARCHAR(50);
-
-      CREATE INDEX IF NOT EXISTS idx_allocations_factory_status ON batch_allocations (factory_user_id, status);
     `);
 
-    console.log('📦 Pickups, Batches & S2 Allocation Engine Tables Schema Verified');
+    // 8. Crowdsourced Street Cleaning & Anti-Fraud Verification (Pillar 2)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS civic_reports (
+        id SERIAL PRIMARY KEY,
+        reporter_id ${userIdType} REFERENCES users(id) ON DELETE SET NULL,
+        description TEXT,
+        waste_type VARCHAR(50) DEFAULT 'DRY',
+        before_image_url TEXT,
+        location GEOGRAPHY(Point, 4326) NOT NULL,
+        status VARCHAR(50) DEFAULT 'PENDING'
+          CHECK (status IN ('PENDING', 'ASSIGNED', 'CLEANED', 'VERIFIED', 'FLAGGED_FRAUD')),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        reported_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS cleanup_tasks (
+        id SERIAL PRIMARY KEY,
+        report_id INTEGER UNIQUE NOT NULL REFERENCES civic_reports(id) ON DELETE CASCADE,
+        ngo_id ${userIdType} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        after_image_url TEXT,
+        submission_location GEOGRAPHY(Point, 4326),
+        verification_distance_meters NUMERIC(10, 2),
+        status VARCHAR(50) DEFAULT 'ASSIGNED'
+          CHECK (status IN ('PENDING', 'ASSIGNED', 'CLEANED', 'VERIFIED', 'FLAGGED_FRAUD')),
+        verification_notes TEXT,
+        assigned_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        submitted_at TIMESTAMP WITH TIME ZONE,
+        verified_at TIMESTAMP WITH TIME ZONE
+      );
+
+      CREATE TABLE IF NOT EXISTS slashing_logs (
+        id SERIAL PRIMARY KEY,
+        user_id ${userIdType} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        task_id INTEGER REFERENCES cleanup_tasks(id) ON DELETE SET NULL,
+        penalty_points INTEGER NOT NULL,
+        reason TEXT NOT NULL,
+        logged_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 9. Performance & Spatial GIS Indexes
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+      CREATE INDEX IF NOT EXISTS idx_addresses_s2 ON addresses(s2_cell_token);
+      CREATE INDEX IF NOT EXISTS idx_factory_profiles_s2 ON factory_profiles(s2_cell_token);
+      CREATE INDEX IF NOT EXISTS idx_batches_status ON batches(status);
+      CREATE INDEX IF NOT EXISTS idx_batches_qr ON batches(qr_code);
+      CREATE INDEX IF NOT EXISTS idx_allocations_batch ON batch_allocations(batch_id);
+      CREATE INDEX IF NOT EXISTS idx_allocations_factory_status ON batch_allocations(factory_user_id, status);
+      CREATE INDEX IF NOT EXISTS idx_civic_reports_location ON civic_reports USING GIST(location);
+    `);
+
+    console.log('📦 Pickups, Batches, S2 Spatial Allocation & Anti-Fraud Engines Verified');
 
     client.release();
   } catch (err) {
+    if (client) client.release();
     const details = err.errors?.map((cause) => cause.message).filter(Boolean).join('; ');
     console.error(
-      `❌ Database initialization failed [${err.code || 'UNKNOWN'}]: ${err.message || details || 'Unable to connect to the configured database.'}`
+      `❌ Database initialization failed [${err.code || 'UNKNOWN'}]: ${err.message || details || 'Unable to connect to the database.'}`
     );
     if (process.env.NODE_ENV === 'production') {
       console.error('Fatal Database Connection Error:', err);
