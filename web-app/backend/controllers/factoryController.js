@@ -40,7 +40,7 @@ export const getFactoryShipments = async (req, res, next) => {
       JOIN batches b ON (ba.batch_id::text = b.id::text)
       LEFT JOIN users u ON (b.society_id::text = u.id::text OR b.society_user_id::text = u.id::text OR b.user_id::text = u.id::text)
       LEFT JOIN addresses a ON (b.society_id::text = a.user_id::text OR b.society_user_id::text = a.user_id::text OR b.user_id::text = a.user_id::text)
-      WHERE (ba.factory_user_id::text = $1::text OR ba.factory_id::text = $1::text)
+      WHERE (ba.factory_user_id::text = $1::text)
         AND ba.status IN ('ASSIGNED', 'IN_TRANSIT', 'DELIVERED')
       ORDER BY ba.allocated_at DESC;
     `;
@@ -142,7 +142,7 @@ export const confirmFactoryDelivery = async (req, res, next) => {
         `SELECT ba.* FROM batch_allocations ba
          JOIN batches b ON (ba.batch_id::text = b.id::text)
          WHERE (b.id::text = $1::text OR b.qr_code = $2) 
-           AND (ba.factory_user_id::text = $3::text OR ba.factory_id::text = $3::text)`,
+           AND (ba.factory_user_id::text = $3::text)`,
         [String(batch_id || ''), qr_code || '', factoryId]
       );
     }
@@ -152,7 +152,7 @@ export const confirmFactoryDelivery = async (req, res, next) => {
     if (!targetAllocation) {
       const fallbackRes = await client.query(
         `SELECT * FROM batch_allocations 
-         WHERE (factory_user_id::text = $1::text OR factory_id::text = $1::text) 
+         WHERE (factory_user_id::text = $1::text) 
          ORDER BY allocated_at DESC LIMIT 1`,
         [factoryId]
       );
@@ -178,7 +178,7 @@ export const confirmFactoryDelivery = async (req, res, next) => {
     await client.query(
       `UPDATE batch_allocations 
        SET status = 'DELIVERED', confirmed_at = CURRENT_TIMESTAMP 
-       WHERE id::text = $1 AND (factory_user_id::text = $2 OR factory_id::text = $2)`,
+       WHERE id::text = $1 AND factory_user_id::text = $2`,
       [String(targetAllocation.id), factoryId]
     );
 
@@ -269,7 +269,7 @@ export const getFactoryStats = async (req, res, next) => {
     const profile = profileRes.rows[0] || {};
 
     const allocRes = await query(
-      `SELECT status, allocated_weight_kg FROM batch_allocations WHERE factory_user_id::text = $1 OR factory_id::text = $1`,
+      `SELECT status, allocated_weight_kg FROM batch_allocations WHERE factory_user_id::text = $1`,
       [factoryId]
     );
 

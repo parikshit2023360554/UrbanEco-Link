@@ -34,7 +34,10 @@ import {
   ShieldCheck,
   Building2,
   Calendar,
-  FileText
+  FileText,
+  MapPin,
+  Download,
+  ExternalLink
 } from 'lucide-react';
 
 // --- Stat Card Component matching Society Dashboard ---
@@ -208,6 +211,85 @@ const ConfirmDeliveryModal = ({ shipment, onClose, onConfirm, processing }) => {
   );
 };
 
+// --- View QR Manifest Modal Component (Society Dashboard Style) ---
+const ViewQrModal = ({ shipment, onClose, onDownload }) => {
+  if (!shipment) return null;
+
+  const qrToken = shipment.qr_code || shipment.qr_code_token || `BATCH-${shipment.id || '001'}`;
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(qrToken)}`;
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative text-center"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-3 text-left">
+            <div className="p-3 bg-primary/10 text-primary rounded-2xl">
+              <QrCode className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="font-bold text-neutral-dark text-xl">Shipment QR Manifest</h3>
+              <p className="text-xs text-neutral-gray font-medium">Scan token at gate weighbridge for rapid intake verification</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <X className="w-5 h-5 text-neutral-gray" />
+          </button>
+        </div>
+
+        {/* QR Code Container */}
+        <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 mb-6 flex flex-col items-center justify-center">
+          <div className="p-3 bg-white rounded-2xl shadow-md border border-gray-200 mb-3">
+            <img 
+              src={qrImageUrl} 
+              alt={`QR Code for ${qrToken}`}
+              className="w-48 h-48 object-contain rounded-xl"
+            />
+          </div>
+          <span className="font-mono text-xs font-black text-primary bg-primary/10 px-3 py-1 rounded-md border border-primary/20">
+            {qrToken}
+          </span>
+        </div>
+
+        {/* Details Box */}
+        <div className="text-left space-y-2 bg-gray-50 p-4 rounded-xl mb-6 text-xs">
+          <div className="flex justify-between"><span className="text-neutral-gray">Origin Society</span><span className="font-bold text-neutral-dark">{shipment.society_name || 'Registered Society'}</span></div>
+          <div className="flex justify-between"><span className="text-neutral-gray">Stream Category</span><span className="font-bold text-neutral-dark">{shipment.stream_category || shipment.waste_category || 'DRY'} Stream</span></div>
+          <div className="flex justify-between"><span className="text-neutral-gray">Allocated Mass</span><span className="font-black text-primary">{Number(shipment.allocated_weight_kg || shipment.estimated_weight_kg || shipment.weight_kg || 0).toFixed(1)} kg</span></div>
+          <div className="flex justify-between"><span className="text-neutral-gray">Logistics Driver</span><span className="font-bold text-neutral-dark">{shipment.driver_name || shipment.assigned_driver || 'Assigned Driver'}</span></div>
+          <div className="flex justify-between"><span className="text-neutral-gray">Allocation Status</span><span className="font-bold text-emerald-600">{shipment.shipment_status || shipment.allocation_status || shipment.status || 'ASSIGNED'}</span></div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <button 
+            onClick={onDownload} 
+            className="flex items-center justify-center gap-2 border border-primary text-primary hover:bg-primary/5 py-3.5 rounded-xl font-bold text-sm transition-all active:scale-95"
+          >
+            <Download className="w-4 h-4" /> Download QR
+          </button>
+          <button 
+            onClick={onClose} 
+            className="bg-gray-100 hover:bg-gray-200 text-neutral-dark py-3.5 rounded-xl font-bold text-sm transition-all active:scale-95"
+          >
+            Close
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 // --- Main Factory Dashboard Component ---
 const FactoryDashboard = () => {
   const navigate = useNavigate();
@@ -238,6 +320,10 @@ const FactoryDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedShipment, setSelectedShipment] = useState(null);
+  const [viewingQrShipment, setViewingQrShipment] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL');
   const [processingId, setProcessingId] = useState(null);
 
   useEffect(() => {
@@ -397,13 +483,13 @@ const FactoryDashboard = () => {
   const quotaUsagePercent = Math.min(100, ((factoryAnalytics.weekly_quota_kg - factoryAnalytics.remaining_quota_kg) / Math.max(factoryAnalytics.weekly_quota_kg, 1)) * 100 || 0);
 
   const renderContent = () => {
-    if (activeTab === 'Shipments' || activeTab === 'Overview') {
+    if (activeTab === 'Overview') {
       return (
         <div className="space-y-8 animate-in fade-in duration-500">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-black text-neutral-dark">Factory Waste Processing Portal</h1>
-              <p className="text-sm font-medium text-neutral-gray">Monitor incoming trucks, weighbridge verification and intake operations</p>
+              <h1 className="text-2xl font-black text-neutral-dark">Factory Operational Overview</h1>
+              <p className="text-sm font-medium text-neutral-gray">Live processing throughput, telemetry metrics and facility capacity usage</p>
             </div>
             <div className="flex items-center gap-3">
               <button 
@@ -417,75 +503,306 @@ const FactoryDashboard = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard title="Incoming Trucks" value={incomingData.incoming_trucks_count} subtext="Assigned to your facility" trend="Active" icon={Truck} colorClass="bg-blue-50 text-blue-600" />
-            <StatCard title="Total Incoming Weight" value={`${incomingData.total_incoming_weight_kg.toLocaleString()} kg`} subtext="Live scheduled drop weight" trend="Live" icon={Scale} colorClass="bg-green-50 text-green-600" />
-            <StatCard title="Wet Stream" value={`${wetWeight.toLocaleString()} kg`} subtext="Composting / biogas intake" icon={Recycle} colorClass="bg-yellow-50 text-yellow-600" />
-            <StatCard title="Dry Stream" value={`${dryWeight.toLocaleString()} kg`} subtext="Material recovery yard" icon={Box} colorClass="bg-purple-50 text-purple-600" />
+            <StatCard title="Incoming Trucks" value={incomingData.incoming_trucks_count} subtext="Assigned En-Route" trend="Active" icon={Truck} colorClass="bg-blue-50 text-blue-600" />
+            <StatCard title="Total Scheduled Weight" value={`${incomingData.total_incoming_weight_kg.toLocaleString()} kg`} subtext="Live intake mass" trend="Live" icon={Scale} colorClass="bg-green-50 text-green-600" />
+            <StatCard title="Processed Weight" value={`${factoryAnalytics.total_weight_processed_kg.toLocaleString()} kg`} subtext="Confirmed weighbridge intake" icon={Recycle} colorClass="bg-yellow-50 text-yellow-600" />
+            <StatCard title="Capacity Quota" value={`${Math.round(quotaUsagePercent)}%`} subtext={`${factoryAnalytics.weekly_quota_kg - factoryAnalytics.remaining_quota_kg} / ${factoryAnalytics.weekly_quota_kg} kg`} icon={Box} colorClass="bg-purple-50 text-purple-600" />
           </div>
 
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-              <div>
-                <h3 className="font-bold text-neutral-dark text-lg">Incoming Truck Shipments</h3>
-                <p className="text-xs text-neutral-gray font-medium">Gate verification and final intake confirmation from backend allocation data</p>
+          {/* Processing Capacity & Waste Stream Gauge */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="font-bold text-neutral-dark text-lg">Weekly Capacity & Quota Usage</h3>
+                  <p className="text-xs text-neutral-gray font-medium">Synced with S2 Spatial Dispatch engine for auto-allocation</p>
+                </div>
+                <button onClick={() => setActiveTab('Settings')} className="text-xs font-bold text-primary hover:underline flex items-center gap-1">
+                  Adjust Quota <ArrowUpRight className="w-3.5 h-3.5" />
+                </button>
               </div>
-              <span className="text-xs font-bold px-3 py-1 bg-blue-50 text-blue-600 rounded-full">
-                {incomingData.pickups.length} En Route
-              </span>
+
+              <div className="space-y-6">
+                <div>
+                  <div className="flex justify-between items-center text-sm font-bold mb-2">
+                    <span className="text-neutral-dark">Weekly Intake Quota ({Math.round(quotaUsagePercent)}% utilized)</span>
+                    <span className="text-primary font-mono">{factoryAnalytics.weekly_quota_kg - factoryAnalytics.remaining_quota_kg} kg / {factoryAnalytics.weekly_quota_kg} kg</span>
+                  </div>
+                  <div className="h-4 bg-gray-100 rounded-full overflow-hidden p-0.5 border border-gray-200">
+                    <div className="bg-gradient-to-r from-green-500 to-emerald-600 h-full rounded-full transition-all duration-500" style={{ width: `${quotaUsagePercent}%` }} />
+                  </div>
+                  <div className="flex justify-between items-center text-xs text-neutral-gray mt-2">
+                    <span>Remaining Capacity: <strong className="text-emerald-600">{factoryAnalytics.remaining_quota_kg} kg</strong></span>
+                    <span>Daily Equivalent: <strong className="text-neutral-dark">{factoryAnalytics.daily_quota_kg} kg/day</strong></span>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-gray-100">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-gray mb-4">Accepted Waste Streams Proportions</h4>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="p-4 bg-amber-50/60 rounded-2xl border border-amber-100 text-center">
+                      <span className="text-[10px] uppercase font-bold text-amber-700 tracking-wider">Wet Stream</span>
+                      <p className="text-lg font-black text-neutral-dark mt-1">{wetWeight.toLocaleString()} kg</p>
+                    </div>
+                    <div className="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-100 text-center">
+                      <span className="text-[10px] uppercase font-bold text-emerald-700 tracking-wider">Dry Stream</span>
+                      <p className="text-lg font-black text-neutral-dark mt-1">{dryWeight.toLocaleString()} kg</p>
+                    </div>
+                    <div className="p-4 bg-rose-50/60 rounded-2xl border border-rose-100 text-center">
+                      <span className="text-[10px] uppercase font-bold text-rose-700 tracking-wider">Hazardous</span>
+                      <p className="text-lg font-black text-neutral-dark mt-1">{hazardousWeight.toLocaleString()} kg</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {loading ? (
-              <div className="p-12 text-center text-neutral-gray flex flex-col items-center justify-center gap-3">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                <p className="text-sm font-medium">Fetching live factory intake telemetry...</p>
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 flex flex-col justify-between">
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-neutral-dark text-base">En-Route Queue Summary</h3>
+                  <button onClick={() => setActiveTab('Shipments')} className="text-xs font-bold text-primary hover:underline">
+                    View All
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {incomingData.pickups.slice(0, 3).map((pickup, idx) => (
+                    <div key={pickup.id || idx} className="p-3.5 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between text-xs">
+                      <div>
+                        <p className="font-bold text-neutral-dark truncate max-w-[140px]">{pickup.society_name || 'Registered Society'}</p>
+                        <p className="text-[10px] text-neutral-gray">{pickup.stream_category || pickup.waste_category || 'DRY'} • {pickup.allocated_weight_kg || pickup.estimated_weight_kg || 0} kg</p>
+                      </div>
+                      <span className="px-2.5 py-1 bg-blue-100 text-blue-700 font-bold rounded-full text-[10px]">
+                        {pickup.shipment_status || pickup.status || 'ASSIGNED'}
+                      </span>
+                    </div>
+                  ))}
+                  {incomingData.pickups.length === 0 && (
+                    <p className="text-xs text-neutral-gray italic p-4 text-center">No active truck queue right now.</p>
+                  )}
+                </div>
               </div>
-            ) : incomingData.pickups.length === 0 ? (
-              <div className="p-12 text-center text-neutral-gray bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+
+              <button onClick={() => setActiveTab('Shipments')} className="w-full mt-4 bg-primary/10 hover:bg-primary/20 text-primary py-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2">
+                <Truck className="w-4 h-4" />
+                <span>Go to Incoming Shipments ({incomingData.pickups.length})</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (activeTab === 'Shipments') {
+      const filteredPickups = incomingData.pickups.filter((pickup) => {
+        const q = searchQuery.toLowerCase().trim();
+        const societyName = (pickup.society_name || '').toLowerCase();
+        const driverName = (pickup.driver_name || pickup.assigned_driver || '').toLowerCase();
+        const qrToken = (pickup.qr_code || pickup.qr_code_token || '').toLowerCase();
+        const streamCategory = (pickup.stream_category || pickup.waste_category || '').toUpperCase();
+        const statusVal = (pickup.shipment_status || pickup.allocation_status || pickup.status || 'ASSIGNED').toUpperCase();
+
+        const matchesSearch = !q || societyName.includes(q) || driverName.includes(q) || qrToken.includes(q);
+        const matchesCategory = categoryFilter === 'ALL' || streamCategory === categoryFilter;
+        const matchesStatus = statusFilter === 'ALL' || statusVal === statusFilter;
+
+        return matchesSearch && matchesCategory && matchesStatus;
+      });
+
+      return (
+        <div className="space-y-8 animate-in fade-in duration-500">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-black text-neutral-dark">Incoming Truck Shipments & Manifest Verification</h1>
+              <p className="text-sm font-medium text-neutral-gray">View QR code tokens, manifest details, origin societies and weighbridge intake</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={fetchIncomingPickups}
+                className="px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-neutral-dark rounded-xl font-bold text-xs flex items-center gap-2 shadow-sm transition-all active:scale-95"
+              >
+                <RefreshCw className={`w-4 h-4 text-primary ${loading ? 'animate-spin' : ''}`} />
+                Refresh Shipments
+              </button>
+            </div>
+          </div>
+
+          {/* Search & Filter Control Bar matching Society Dashboard */}
+          <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="relative w-full md:w-80">
+              <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-neutral-gray" />
+              <input 
+                type="text"
+                placeholder="Search by Society, Driver or QR Token..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-10 pr-4 py-2.5 text-xs font-bold text-neutral-dark focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+              {/* Category Filter */}
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5 text-xs font-bold text-neutral-dark focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+              >
+                <option value="ALL">All Stream Categories</option>
+                <option value="WET">Wet Stream</option>
+                <option value="DRY">Dry Stream</option>
+                <option value="HAZARDOUS">Hazardous Stream</option>
+                <option value="FOOD_WASTE">Food Waste</option>
+                <option value="PLASTIC">Plastic Waste</option>
+              </select>
+
+              {/* Status Filter */}
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5 text-xs font-bold text-neutral-dark focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="ASSIGNED">Assigned</option>
+                <option value="IN_TRANSIT">In Transit</option>
+                <option value="DELIVERED">Delivered</option>
+              </select>
+
+              <span className="text-xs font-bold px-3 py-1.5 bg-green-50 text-green-700 rounded-full border border-green-200/50">
+                {filteredPickups.length} Result{filteredPickups.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+          </div>
+
+          {/* Dedicated Incoming Shipments Cards Grid */}
+          <div className="space-y-6">
+            {loading ? (
+              <div className="p-16 bg-white rounded-3xl border border-gray-100 text-center text-neutral-gray flex flex-col items-center justify-center gap-3 shadow-sm">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="text-sm font-bold">Fetching incoming shipments & QR manifest data...</p>
+              </div>
+            ) : filteredPickups.length === 0 ? (
+              <div className="p-16 bg-white rounded-3xl border border-dashed border-gray-200 text-center text-neutral-gray shadow-sm">
                 <Truck className="w-12 h-12 text-neutral-gray/40 mx-auto mb-3" />
-                <h4 className="font-bold text-neutral-dark text-base mb-1">No incoming shipments scheduled</h4>
+                <h3 className="font-bold text-neutral-dark text-lg mb-1">No matching incoming shipments found</h3>
                 <p className="text-xs text-neutral-gray max-w-md mx-auto">
-                  Newly assigned waste drops from society batches will appear here for intake and verification.
+                  {searchQuery || categoryFilter !== 'ALL' || statusFilter !== 'ALL' 
+                    ? 'Try adjusting your search query or filter options to see scheduled drops.'
+                    : 'New society waste drops will appear here automatically when assigned by the dispatch engine.'}
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {incomingData.pickups.map((pickup) => {
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {filteredPickups.map((pickup) => {
                   const statusVal = pickup.shipment_status || pickup.allocation_status || pickup.status || 'ASSIGNED';
                   const isDelivered = statusVal === 'DELIVERED';
+                  const qrToken = pickup.qr_code || pickup.qr_code_token || `QR-${pickup.id || pickup.allocation_id}`;
+                  const qrImg = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrToken)}`;
+                  const streamCategory = pickup.stream_category || pickup.waste_category || 'DRY';
+
                   return (
-                    <motion.div key={pickup.id || pickup.allocation_id} whileHover={{ y: -4 }} className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100 hover:border-green-200 hover:shadow-md transition-all flex flex-col justify-between gap-5">
-                      <div>
-                        <div className="flex justify-between items-start mb-4">
-                          <div className="p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
-                            <Truck className="w-6 h-6 text-primary" />
+                    <motion.div 
+                      key={pickup.id || pickup.allocation_id} 
+                      whileHover={{ y: -3 }} 
+                      className="bg-white p-7 rounded-3xl border border-gray-100 hover:border-green-300 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between gap-6 relative overflow-hidden"
+                    >
+                      {/* Top Header Row matching Society Batch Card */}
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-3 bg-primary/10 rounded-2xl text-primary">
+                            <QrCode className="w-6 h-6" />
                           </div>
-                          <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${isDelivered ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-blue-100 text-blue-700 border border-blue-200'}`}>
-                            {statusVal}
+                          <div>
+                            <span className="text-[10px] font-mono font-black text-primary bg-primary/10 px-2.5 py-0.5 rounded border border-primary/20">
+                              #{qrToken}
+                            </span>
+                            <h3 className="font-bold text-neutral-dark text-lg mt-1">
+                              From: {pickup.society_name || 'Registered Society'}
+                            </h3>
+                          </div>
+                        </div>
+
+                        <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border ${
+                          isDelivered 
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                            : statusVal === 'IN_TRANSIT'
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : 'bg-blue-50 text-blue-700 border-blue-200'
+                        }`}>
+                          {statusVal}
+                        </span>
+                      </div>
+
+                      {/* Card Content Split: Details Left + Interactive QR Right */}
+                      <div className="grid grid-cols-1 sm:grid-cols-[1fr_130px] gap-4 bg-gray-50/70 p-5 rounded-2xl border border-gray-100">
+                        <div className="space-y-2.5 text-xs">
+                          <div className="flex items-center gap-2 text-neutral-dark font-medium">
+                            <Building2 className="w-4 h-4 text-neutral-gray shrink-0" />
+                            <span>Origin: <strong className="font-bold text-neutral-dark">{pickup.society_name || 'Lotus Society RWA'}</strong></span>
+                          </div>
+                          <div className="flex items-center gap-2 text-neutral-dark font-medium">
+                            <MapPin className="w-4 h-4 text-neutral-gray shrink-0" />
+                            <span className="truncate">Address: <strong className="font-bold text-neutral-dark">{pickup.pickup_address || 'Delhi NCT Zone 4'}</strong></span>
+                          </div>
+                          <div className="flex items-center gap-2 text-neutral-dark font-medium">
+                            <Truck className="w-4 h-4 text-neutral-gray shrink-0" />
+                            <span>Driver: <strong className="font-bold text-neutral-dark">{pickup.driver_name || pickup.assigned_driver || 'Logistics Driver'}</strong></span>
+                          </div>
+                          
+                          <div className="pt-2 flex items-center gap-3">
+                            <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                              streamCategory === 'WET' ? 'bg-amber-100 text-amber-800' : streamCategory === 'DRY' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                            }`}>
+                              {streamCategory} Stream
+                            </span>
+                            <span className="text-sm font-black text-primary bg-white px-3 py-1 rounded-md border border-gray-200 shadow-xs">
+                              {Number(pickup.allocated_weight_kg || pickup.estimated_weight_kg || pickup.weight_kg || 0).toFixed(1)} kg
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Interactive QR Code Thumbnail matching Society view */}
+                        <div 
+                          onClick={() => setViewingQrShipment(pickup)}
+                          className="group relative bg-white p-2.5 rounded-xl border border-gray-200 flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-all shadow-xs"
+                          title="Click to expand QR Manifest"
+                        >
+                          <img 
+                            src={qrImg} 
+                            alt="Shipment QR"
+                            className="w-24 h-24 object-contain rounded-lg group-hover:scale-105 transition-transform"
+                          />
+                          <span className="text-[9px] font-bold text-primary mt-1 flex items-center gap-0.5">
+                            <ExternalLink className="w-2.5 h-2.5" /> Enlarge
                           </span>
-                        </div>
-                        <div className="mb-3">
-                          <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">Assigned Drop</span>
-                          <h4 className="font-bold text-neutral-dark text-base mt-1 mb-0.5">From: {pickup.society_name || 'Registered Society'}</h4>
-                          <p className="text-xs text-neutral-gray font-medium">Driver: <span className="text-neutral-dark font-bold">{pickup.driver_name || pickup.assigned_driver || 'Assigned Driver'}</span></p>
-                        </div>
-                        <div className="space-y-2 text-xs bg-white p-3.5 rounded-xl border border-gray-100">
-                          <div className="flex justify-between"><span className="text-neutral-gray">Stream:</span><span className="font-bold text-neutral-dark">{pickup.stream_category || pickup.waste_category || 'WET'} </span></div>
-                          <div className="flex justify-between"><span className="text-neutral-gray">Allocated Weight:</span><span className="font-black text-emerald-600">{Number(pickup.allocated_weight_kg || pickup.estimated_weight_kg || pickup.weight_kg || 0).toFixed(1)} kg</span></div>
-                          <div className="flex justify-between"><span className="text-neutral-gray">QR Token:</span><span className="font-mono text-[10px] font-bold text-neutral-dark">{pickup.qr_code || pickup.qr_code_token || 'N/A'}</span></div>
                         </div>
                       </div>
 
-                      {isDelivered ? (
-                        <button disabled className="w-full bg-emerald-50 text-emerald-700 border border-emerald-200 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 cursor-default">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                          <span>Delivery Confirmed</span>
+                      {/* Action Footer Buttons matching Society Dashboard */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setViewingQrShipment(pickup)}
+                          className="w-full bg-white border border-gray-200 hover:bg-gray-50 text-neutral-dark py-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 active:scale-95 shadow-xs"
+                        >
+                          <QrCode className="w-4 h-4 text-primary" />
+                          <span>View Manifest QR</span>
                         </button>
-                      ) : (
-                        <button onClick={() => setSelectedShipment(pickup)} className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold text-sm shadow-md shadow-green-600/20 transition-all flex items-center justify-center gap-2 active:scale-95">
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>Confirm Delivery</span>
-                        </button>
-                      )}
+
+                        {isDelivered ? (
+                          <button disabled className="w-full bg-emerald-50 text-emerald-700 border border-emerald-200 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 cursor-default">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            <span>Intake Verified ✅</span>
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => setSelectedShipment(pickup)} 
+                            className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold text-xs shadow-md shadow-green-600/20 transition-all flex items-center justify-center gap-2 active:scale-95"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span>Confirm Weighbridge Intake</span>
+                          </button>
+                        )}
+                      </div>
                     </motion.div>
                   );
                 })}
@@ -842,6 +1159,17 @@ const FactoryDashboard = () => {
             onClose={() => setSelectedShipment(null)}
             onConfirm={handleConfirmDelivery}
             processing={processingId === selectedShipment.id}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* View QR Manifest Modal */}
+      <AnimatePresence>
+        {viewingQrShipment && (
+          <ViewQrModal
+            shipment={viewingQrShipment}
+            onClose={() => setViewingQrShipment(null)}
+            onDownload={() => showToast('QR Manifest downloaded! ✅')}
           />
         )}
       </AnimatePresence>

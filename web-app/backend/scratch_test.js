@@ -1,10 +1,11 @@
-import pool from './config/db.js';
+import pool, { connectDB } from './config/db.js';
 import { register } from './controllers/authController.js';
 import { createBatch, deliveryScanBatch, getMyBatches } from './controllers/batch.controller.js';
 import { autoAssignBatch } from './controllers/batchAllocationController.js';
 import { getFactoryShipments, confirmFactoryDelivery, updateFactorySettings } from './controllers/factoryController.js';
 
 async function runTest() {
+  await connectDB();
   const time = Date.now();
 
   // 1. Register Factory F1 (20kg limit)
@@ -42,7 +43,7 @@ async function runTest() {
   allocData.allocations?.forEach(a => console.log('    -> ' + a.factory_name + ': ' + a.allocated_weight_kg + 'kg (Quota remaining: ' + a.remaining_quota_kg + 'kg)'));
 
   // Step 2: Delivery Partner Scans Pickup (Marks IN_TRANSIT for both allocations)
-  const scanReq = { user: { id: '288c0489-9924-45fa-9679-5632252aaa13', name: 'Driver Alex' }, body: { qr_code: batchObj.qr_code } };
+  const scanReq = { user: { id: 1, name: 'Driver Alex' }, body: { qr_code: batchObj.qr_code } };
   await deliveryScanBatch(scanReq, { status: () => ({ json: () => {} }) }, (e) => console.error(e));
 
   console.log('\n✅ STEP 2: DELIVERY PARTNER SCANNED PICKUP -> MARKED IN_TRANSIT');

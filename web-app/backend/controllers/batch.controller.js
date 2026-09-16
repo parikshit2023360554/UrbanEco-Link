@@ -132,8 +132,8 @@ export const getMyBatches = async (req, res, next) => {
                COALESCE(fp.factory_name, u_fac.name, 'Recycling Factory') as factory_name,
                u_fac.id as factory_user_id
              FROM batch_allocations ba
-             LEFT JOIN factory_profiles fp ON (ba.factory_user_id::text = fp.user_id::text OR ba.factory_id::text = fp.user_id::text)
-             LEFT JOIN users u_fac ON (ba.factory_user_id::text = u_fac.id::text OR ba.factory_id::text = u_fac.id::text)
+              LEFT JOIN factory_profiles fp ON (ba.factory_user_id::text = fp.user_id::text)
+              LEFT JOIN users u_fac ON (ba.factory_user_id::text = u_fac.id::text)
              WHERE ba.batch_id::text = $1::text
              ORDER BY ba.drop_order ASC`,
             [String(batch.id)]
@@ -230,7 +230,7 @@ export const deliveryScanBatch = async (req, res, next) => {
       UPDATE batches
       SET 
         status = 'IN_TRANSIT',
-        driver_id = COALESCE($1, driver_id),
+        driver_id = COALESCE(NULLIF($1, '')::integer, driver_id),
         driver_name = $3,
         picked_up_at = CURRENT_TIMESTAMP
       WHERE (id::text = $2::text OR qr_code = $2)

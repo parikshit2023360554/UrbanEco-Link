@@ -281,6 +281,12 @@ export const connectDB = async () => {
         delivered_at TIMESTAMP WITH TIME ZONE
       );
 
+      ALTER TABLE batches ADD COLUMN IF NOT EXISTS user_id ${userIdType};
+      ALTER TABLE batches ADD COLUMN IF NOT EXISTS society_id ${userIdType};
+      ALTER TABLE batches ADD COLUMN IF NOT EXISTS society_user_id ${userIdType};
+      ALTER TABLE batches ADD COLUMN IF NOT EXISTS society_name VARCHAR(255);
+      ALTER TABLE batches ADD COLUMN IF NOT EXISTS waste_category VARCHAR(50);
+      ALTER TABLE batches ADD COLUMN IF NOT EXISTS driver_name VARCHAR(255);
       ALTER TABLE batches ADD COLUMN IF NOT EXISTS gate_scale_weight_kg NUMERIC(10, 2);
       ALTER TABLE batches ADD COLUMN IF NOT EXISTS unallocated_weight_kg NUMERIC(10, 2);
       ALTER TABLE batches ADD COLUMN IF NOT EXISTS total_weight_kg NUMERIC(10, 2);
@@ -317,44 +323,53 @@ export const connectDB = async () => {
     `);
 
     // 8. Crowdsourced Street Cleaning & Anti-Fraud Verification (Pillar 2)
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS civic_reports (
-        id SERIAL PRIMARY KEY,
-        reporter_id ${userIdType} REFERENCES users(id) ON DELETE SET NULL,
-        description TEXT,
-        waste_type VARCHAR(50) DEFAULT 'DRY',
-        before_image_url TEXT,
-        location GEOGRAPHY(Point, 4326) NOT NULL,
-        status VARCHAR(50) DEFAULT 'PENDING'
-          CHECK (status IN ('PENDING', 'ASSIGNED', 'CLEANED', 'VERIFIED', 'FLAGGED_FRAUD')),
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        reported_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    try {
+      const civicReportColumnCheck = await client.query(
+        "SELECT data_type FROM information_schema.columns WHERE table_name = 'civic_reports' AND column_name = 'id'"
       );
+      const civicReportIdType = civicReportColumnCheck.rows[0]?.data_type === 'uuid' ? 'UUID' : 'INTEGER';
 
-      CREATE TABLE IF NOT EXISTS cleanup_tasks (
-        id SERIAL PRIMARY KEY,
-        report_id INTEGER UNIQUE NOT NULL REFERENCES civic_reports(id) ON DELETE CASCADE,
-        ngo_id ${userIdType} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        after_image_url TEXT,
-        submission_location GEOGRAPHY(Point, 4326),
-        verification_distance_meters NUMERIC(10, 2),
-        status VARCHAR(50) DEFAULT 'ASSIGNED'
-          CHECK (status IN ('PENDING', 'ASSIGNED', 'CLEANED', 'VERIFIED', 'FLAGGED_FRAUD')),
-        verification_notes TEXT,
-        assigned_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        submitted_at TIMESTAMP WITH TIME ZONE,
-        verified_at TIMESTAMP WITH TIME ZONE
-      );
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS civic_reports (
+          id SERIAL PRIMARY KEY,
+          reporter_id ${userIdType} REFERENCES users(id) ON DELETE SET NULL,
+          description TEXT,
+          waste_type VARCHAR(50) DEFAULT 'DRY',
+          before_image_url TEXT,
+          location GEOGRAPHY(Point, 4326) NOT NULL,
+          status VARCHAR(50) DEFAULT 'PENDING'
+            CHECK (status IN ('PENDING', 'ASSIGNED', 'CLEANED', 'VERIFIED', 'FLAGGED_FRAUD')),
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          reported_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
 
-      CREATE TABLE IF NOT EXISTS slashing_logs (
-        id SERIAL PRIMARY KEY,
-        user_id ${userIdType} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        task_id INTEGER REFERENCES cleanup_tasks(id) ON DELETE SET NULL,
-        penalty_points INTEGER NOT NULL,
-        reason TEXT NOT NULL,
-        logged_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
+        CREATE TABLE IF NOT EXISTS cleanup_tasks (
+          id SERIAL PRIMARY KEY,
+          report_id ${civicReportIdType} UNIQUE NOT NULL REFERENCES civic_reports(id) ON DELETE CASCADE,
+          ngo_id ${userIdType} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          after_image_url TEXT,
+          submission_location GEOGRAPHY(Point, 4326),
+          verification_distance_meters NUMERIC(10, 2),
+          status VARCHAR(50) DEFAULT 'ASSIGNED'
+            CHECK (status IN ('PENDING', 'ASSIGNED', 'CLEANED', 'VERIFIED', 'FLAGGED_FRAUD')),
+          verification_notes TEXT,
+          assigned_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          submitted_at TIMESTAMP WITH TIME ZONE,
+          verified_at TIMESTAMP WITH TIME ZONE
+        );
+
+        CREATE TABLE IF NOT EXISTS slashing_logs (
+          id SERIAL PRIMARY KEY,
+          user_id ${userIdType} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          task_id INTEGER REFERENCES cleanup_tasks(id) ON DELETE SET NULL,
+          penalty_points INTEGER NOT NULL,
+          reason TEXT NOT NULL,
+          logged_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+    } catch (e) {
+      console.warn('⚠️ Notice on Civic Reports schema initialization:', e.message);
+    }
 
     // 9. Performance & Spatial GIS Indexes
     await client.query(`
