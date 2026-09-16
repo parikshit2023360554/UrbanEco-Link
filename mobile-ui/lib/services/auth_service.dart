@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../core/constants/app_constants.dart';
 import '../shared/models/models.dart';
+import 'api_client.dart';
 
 class AuthService extends ChangeNotifier {
   UserModel? _currentUser;
@@ -13,7 +14,7 @@ class AuthService extends ChangeNotifier {
   bool get isAuthenticated => _currentUser != null;
 
   AuthService() {
-    // Default mock initial user
+    // Default initial user
     _currentUser = UserModel(
       id: 'USER-101',
       name: 'Greenwood Heights RWA',
@@ -53,24 +54,49 @@ class AuthService extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    await Future.delayed(const Duration(milliseconds: 600));
-
     _activeRole = role;
-    _currentUser = UserModel(
-      id: 'USER-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
-      name: role == AppConstants.roleDriver
-          ? 'Rajesh Kumar (Driver)'
-          : role == AppConstants.roleFactory
-              ? 'EcoMatrix Recycling Facility #4'
-              : role == AppConstants.roleNGO
-                  ? 'Swachh Bharat Volunteer Org'
-                  : 'Greenwood Heights RWA',
-      email: email,
-      role: role,
-      phone: '+91 98765 43210',
-      organizationName: 'UrbanEco Enterprise',
-      address: 'Sector 62, Eco City',
-    );
+
+    // Try live Supabase Express backend
+    final response = await ApiClient.post('/auth/login', {
+      'email': email,
+      'password': password,
+      'role': role,
+    });
+
+    if (response != null && response['success'] == true) {
+      final data = response['data'] ?? response['user'];
+      final token = response['token'] as String?;
+      if (token != null) {
+        ApiClient.setAuthToken(token);
+      }
+      _currentUser = UserModel(
+        id: data?['id']?.toString() ?? 'USER-DB',
+        name: data?['name'] ?? data?['full_name'] ?? 'UrbanEco User',
+        email: data?['email'] ?? email,
+        role: data?['role'] ?? role,
+        phone: data?['phone_number'] ?? '+91 98765 43210',
+        organizationName: data?['society_name'] ?? 'UrbanEco Enterprise',
+        address: data?['street_address'] ?? 'Sector 62, Eco City',
+      );
+    } else {
+      // Offline / fallback mock mode
+      await Future.delayed(const Duration(milliseconds: 300));
+      _currentUser = UserModel(
+        id: 'USER-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
+        name: role == AppConstants.roleDriver
+            ? 'Rajesh Kumar (Driver)'
+            : role == AppConstants.roleFactory
+                ? 'EcoMatrix Recycling Facility #4'
+                : role == AppConstants.roleNGO
+                    ? 'Swachh Bharat Volunteer Org'
+                    : 'Greenwood Heights RWA',
+        email: email,
+        role: role,
+        phone: '+91 98765 43210',
+        organizationName: 'UrbanEco Enterprise',
+        address: 'Sector 62, Eco City',
+      );
+    }
 
     _isLoading = false;
     notifyListeners();
@@ -88,18 +114,47 @@ class AuthService extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    await Future.delayed(const Duration(milliseconds: 700));
-
     _activeRole = role;
-    _currentUser = UserModel(
-      id: 'USER-REG-${DateTime.now().millisecondsSinceEpoch}',
-      name: name,
-      email: email,
-      role: role,
-      phone: phone,
-      organizationName: name,
-      address: address ?? 'Eco-Zone Sector 12',
-    );
+
+    final response = await ApiClient.post('/auth/register', {
+      'name': name,
+      'email': email,
+      'password': password,
+      'role': role,
+      'phone_number': phone,
+      'street_address': address ?? 'Sector 62',
+      'latitude': 28.6272,
+      'longitude': 77.3726,
+    });
+
+    if (response != null && response['success'] == true) {
+      final data = response['data'] ?? response['user'];
+      final token = response['token'] as String?;
+      if (token != null) {
+        ApiClient.setAuthToken(token);
+      }
+      _currentUser = UserModel(
+        id: data?['id']?.toString() ?? 'USER-REG-DB',
+        name: data?['name'] ?? name,
+        email: data?['email'] ?? email,
+        role: data?['role'] ?? role,
+        phone: data?['phone_number'] ?? phone,
+        organizationName: data?['society_name'] ?? name,
+        address: data?['street_address'] ?? address ?? 'Sector 62',
+      );
+    } else {
+      // Offline / fallback mock mode
+      await Future.delayed(const Duration(milliseconds: 300));
+      _currentUser = UserModel(
+        id: 'USER-REG-${DateTime.now().millisecondsSinceEpoch}',
+        name: name,
+        email: email,
+        role: role,
+        phone: phone,
+        organizationName: name,
+        address: address ?? 'Eco-Zone Sector 12',
+      );
+    }
 
     _isLoading = false;
     notifyListeners();
@@ -109,6 +164,8 @@ class AuthService extends ChangeNotifier {
   void logout() {
     _currentUser = null;
     _activeRole = AppConstants.roleSociety;
+    ApiClient.setAuthToken('');
     notifyListeners();
   }
 }
+

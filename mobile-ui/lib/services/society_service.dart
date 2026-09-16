@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import '../core/constants/app_constants.dart';
 import '../shared/models/models.dart';
+import 'api_client.dart';
 
 class SocietyService extends ChangeNotifier {
+
   final List<WasteForecastModel> _forecasts = [
     WasteForecastModel(
       id: 'FC-8801',
@@ -168,16 +170,30 @@ class SocietyService extends ChangeNotifier {
     }
   }
 
-  void requestPickup({
+  Future<void> requestPickup({
     required String streamCategory,
     required double weightKg,
     required String requestedDate,
     required String timeSlot,
     required String address,
     String priority = 'MEDIUM',
-  }) {
+  }) async {
+    final payload = {
+      'streamCategory': streamCategory,
+      'weightKg': weightKg,
+      'requestedDate': requestedDate,
+      'timeSlot': timeSlot,
+      'address': address,
+      'priority': priority,
+    };
+
+    // Send to Supabase Express Backend
+    final response = await ApiClient.post('/pickups', payload);
+
     final newPickup = PickupRequestModel(
-      id: 'PU-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
+      id: response != null && response['data'] != null
+          ? (response['data']['id']?.toString() ?? 'PU-DB')
+          : 'PU-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
       societyId: 'SOC-101',
       societyName: 'Greenwood Heights RWA',
       address: address,
