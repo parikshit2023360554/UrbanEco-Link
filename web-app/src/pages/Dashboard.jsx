@@ -751,6 +751,7 @@ const PartnerDetailsModal = ({ org, onClose }) => {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [user, setUser] = useState(() => authService.getCurrentUser());
   const [activeTab, setActiveTab] = useState('Overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [toast, setToast] = useState(null);
@@ -784,6 +785,10 @@ const Dashboard = () => {
   const fetchSocietyPickups = async () => {
     try {
       setLoading(true);
+      const currentUser = authService.getCurrentUser();
+      if (currentUser) {
+        setUser(currentUser);
+      }
       const res = await pickupService.getSocietyPickups();
       const batchRes = await batchService.getMyBatches();
 
