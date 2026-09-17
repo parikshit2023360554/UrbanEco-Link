@@ -1968,11 +1968,11 @@ const Dashboard = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                           <label className="block text-xs font-bold text-neutral-gray uppercase tracking-widest mb-2">Society Name</label>
-                          <input type="text" defaultValue="Raghuma Hostel" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+                          <input type="text" defaultValue={user?.society_name || ''} placeholder="Society Name" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
                         </div>
                         <div>
                           <label className="block text-xs font-bold text-neutral-gray uppercase tracking-widest mb-2">Society Type</label>
-                          <select defaultValue="University Hostel" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:ring-2 focus:ring-primary/20 outline-none transition-all">
+                          <select defaultValue="Apartment" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:ring-2 focus:ring-primary/20 outline-none transition-all">
                             <option>Apartment</option>
                             <option>Gated Community</option>
                             <option>RWA</option>
@@ -1981,27 +1981,27 @@ const Dashboard = () => {
                         </div>
                         <div>
                           <label className="block text-xs font-bold text-neutral-gray uppercase tracking-widest mb-2">City</label>
-                          <input type="text" defaultValue="Greater Noida" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+                          <input type="text" placeholder="City" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
                         </div>
                         <div>
                           <label className="block text-xs font-bold text-neutral-gray uppercase tracking-widest mb-2">Pincode</label>
-                          <input type="text" defaultValue="201310" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+                          <input type="text" placeholder="Pincode" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
                         </div>
                       </div>
                       
                       <div>
                         <label className="block text-xs font-bold text-neutral-gray uppercase tracking-widest mb-2">Full Address</label>
-                        <textarea defaultValue="Knowledge Park III, Greater Noida, Uttar Pradesh" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:ring-2 focus:ring-primary/20 outline-none transition-all h-24 resize-none" />
+                        <textarea placeholder="Street Address, City, State" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:ring-2 focus:ring-primary/20 outline-none transition-all h-24 resize-none" />
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                           <label className="block text-xs font-bold text-neutral-gray uppercase tracking-widest mb-2">Total Units / Flats</label>
-                          <input type="number" defaultValue="240" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+                          <input type="number" placeholder="Total Units" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
                         </div>
                         <div>
                           <label className="block text-xs font-bold text-neutral-gray uppercase tracking-widest mb-2">Registered Since</label>
-                          <input type="text" value="January 2026" disabled className="w-full bg-gray-100 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-gray-400 cursor-not-allowed" />
+                          <input type="text" value={user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'} disabled className="w-full bg-gray-100 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-gray-400 cursor-not-allowed" />
                         </div>
                       </div>
 
@@ -2010,15 +2010,15 @@ const Dashboard = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="md:col-span-2">
                             <label className="block text-xs font-bold text-neutral-gray uppercase tracking-widest mb-2">Admin Name</label>
-                            <input type="text" defaultValue="Raghuma Admin" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+                            <input type="text" defaultValue={user?.name || ''} placeholder="Admin Full Name" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
                           </div>
                           <div>
                             <label className="block text-xs font-bold text-neutral-gray uppercase tracking-widest mb-2">Email Address</label>
-                            <input type="email" defaultValue="admin@raghumahostel.in" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+                            <input type="email" defaultValue={user?.email || ''} placeholder="admin@society.com" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
                           </div>
                           <div>
                             <label className="block text-xs font-bold text-neutral-gray uppercase tracking-widest mb-2">Phone Number</label>
-                            <input type="tel" defaultValue="+91 98765 43210" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+                            <input type="tel" defaultValue={user?.phone_number || ''} placeholder="+91 00000 00000" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
                           </div>
                         </div>
                       </div>
@@ -2608,10 +2608,12 @@ const Dashboard = () => {
 
         <div className="mt-auto p-6 border-t border-gray-100 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">RH</div>
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+              {(user?.society_name || user?.name || 'US').substring(0, 2).toUpperCase()}
+            </div>
             <div>
-              <p className="text-sm font-bold text-neutral-dark">Raghuma Hostel</p>
-              <p className="text-[10px] text-neutral-gray uppercase font-bold tracking-widest">Society Admin</p>
+              <p className="text-sm font-bold text-neutral-dark">{user?.society_name || user?.name || 'Society Profile'}</p>
+              <p className="text-[10px] text-neutral-gray uppercase font-bold tracking-widest">{user?.role ? user.role.replace('_', ' ') : 'Society Admin'}</p>
             </div>
           </div>
           <button onClick={handleLogout} className="w-full flex items-center gap-2 text-sm font-semibold text-red-500 hover:text-red-600 transition-colors px-2">
@@ -2701,10 +2703,12 @@ const Dashboard = () => {
               </nav>
               <div className="pt-6 border-t border-gray-100">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">RH</div>
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                    {(user?.society_name || user?.name || 'US').substring(0, 2).toUpperCase()}
+                  </div>
                   <div>
-                    <h4 className="text-sm font-bold text-neutral-dark">Raghuma Hostel</h4>
-                    <p className="text-[10px] text-neutral-gray font-bold">SOCIETY ADMIN</p>
+                    <h4 className="text-sm font-bold text-neutral-dark">{user?.society_name || user?.name || 'Society Profile'}</h4>
+                    <p className="text-[10px] text-neutral-gray font-bold">{user?.role ? user.role.replace('_', ' ') : 'SOCIETY ADMIN'}</p>
                   </div>
                 </div>
                 <button onClick={handleLogout} className="flex items-center gap-2 text-red-500 font-bold text-sm">

@@ -473,7 +473,7 @@ const OrgPortal = () => {
                     <p className="text-[10px] text-gray-400">10:4{i} AM</p>
                   </td>
                   <td className="px-6 py-4">
-                    <p className="text-sm font-bold text-gray-700">{i % 2 === 0 ? 'Raghuma Hostel' : 'Green Valley'}</p>
+                    <p className="text-sm font-bold text-gray-700">{i % 2 === 0 ? 'Residential Society' : 'Commercial Hub'}</p>
                   </td>
                   <td className="px-6 py-4">
                     <span className="px-2 py-0.5 bg-green-50 text-green-600 rounded text-[10px] font-bold uppercase">{i % 3 === 0 ? 'Recyclable' : 'Organic'}</span>
@@ -522,12 +522,9 @@ const OrgPortal = () => {
       </div>
 
       <div className="space-y-4">
-        <h3 className="text-lg font-bold text-gray-900">Awaiting Verification (2)</h3>
+        <h3 className="text-lg font-bold text-gray-900">Awaiting Verification (0)</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {[
-            { id: 1, batch: '#2024-088', type: 'Organic Waste', weight: '160 kg', society: 'Raghuma Hostel', date: '25 Mar 2026', status: 'Pending Proof Upload' },
-            { id: 2, batch: '#2024-085', type: 'Non-Recyclable', weight: '170 kg', society: 'Green Valley Apts', date: '24 Mar 2026', status: 'Pending Proof Upload' }
-          ].map((item) => (
+          {[].map((item) => (
             <div key={item.id} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:border-orange-200 transition-all">
               <div className="flex justify-between items-start mb-4">
                 <span className="px-2 py-0.5 bg-orange-50 text-orange-600 rounded text-[10px] font-bold border border-orange-100 uppercase tracking-wider">{item.status}</span>
@@ -598,11 +595,7 @@ const OrgPortal = () => {
       { name: 'Today', organic: 162, recyclable: 110 },
     ];
 
-    const pieData = [
-      { name: 'Raghuma Hostel', value: 42 },
-      { name: 'Green Valley Apts', value: 35 },
-      { name: 'Sunrise RWA', value: 23 },
-    ];
+    const pieData = [];
     
     const COLORS = ['#16A34A', '#3B82F6', '#F59E0B'];
 
@@ -704,9 +697,9 @@ const OrgPortal = () => {
             <h3 className="font-bold text-gray-800 mb-6">Impact Insights</h3>
             <div className="space-y-4 flex-1">
                {[
-                 { title: 'Processing Peak', desc: 'Your collection reached its highest ever peak last Tuesday with 82kg.', icon: <BarChart3 className="w-4 h-4" color="#16A34A" /> },
-                 { title: 'Top Contributor', desc: 'Raghuma Hostel remains your most consistent partner with 98% quality rate.', icon: <ShieldCheck className="w-4 h-4" color="#3B82F6" /> },
-                 { title: 'New Goal Set', desc: 'You are on track to save 1.5 tons of CO2 by end of Q2.', icon: <Target className="w-4 h-4" color="#F59E0B" /> }
+                 { title: 'Processing Activity', desc: 'No processing metrics recorded yet for this cycle.', icon: <BarChart3 className="w-4 h-4" color="#16A34A" /> },
+                 { title: 'Top Partner', desc: 'Partner society performance insights will appear as waste is processed.', icon: <ShieldCheck className="w-4 h-4" color="#3B82F6" /> },
+                 { title: 'Target Impact', desc: 'Track your CO2 offset and diversion metrics in real-time.', icon: <Target className="w-4 h-4" color="#F59E0B" /> }
                ].map((ins, i) => (
                  <div key={i} className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                     <div className="flex items-center gap-2 mb-1">
@@ -786,16 +779,16 @@ const OrgPortal = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Contact Person</label>
-                    <input type="text" defaultValue="Admin User" className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50 text-sm font-bold outline-none focus:border-green-500 transition-colors" />
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Full Name</label>
+                    <input type="text" placeholder="Contact Person" className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50 text-sm font-bold outline-none focus:border-green-500 transition-colors" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Email</label>
-                    <input type="email" defaultValue="admin@greensoil.com" className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50 text-sm font-bold outline-none focus:border-green-500 transition-colors" />
+                    <input type="email" placeholder="contact@organization.com" className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50 text-sm font-bold outline-none focus:border-green-500 transition-colors" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Phone</label>
-                    <input type="text" defaultValue="+91 98765 43210" className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50 text-sm font-bold outline-none focus:border-green-500 transition-colors" />
+                    <input type="text" placeholder="+91 00000 00000" className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50 text-sm font-bold outline-none focus:border-green-500 transition-colors" />
                   </div>
                 </div>
                 
@@ -978,11 +971,7 @@ const OrgPortal = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[
-                  { name: 'Raghuma Hostel', city: 'Greater Noida', types: ['Organic', 'Recyclable'], since: 'Jan 2026', total: '320 kg', status: 'Active' },
-                  { name: 'Green Valley Apartments', city: 'Greater Noida', types: ['Organic'], since: 'Feb 2026', total: '195 kg', status: 'Active' },
-                  { name: 'Sunrise RWA', city: 'Greater Noida', types: ['Organic'], since: 'Mar 2026', total: '148 kg', status: 'Active' },
-                ].map((soc, i) => (
+                {[].map((soc, i) => (
                   <div key={i} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6 flex flex-col h-full">
                     <div className="flex justify-between items-start">
                       <div>
@@ -1389,18 +1378,7 @@ const OrgPortal = () => {
             <div className="space-y-3">
               <p className="text-xs font-medium text-gray-400 uppercase tracking-widest">Active Pins</p>
               <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-600 font-medium">Raghuma Hostel</span>
-                  <span className="text-gray-400">2.3 km</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-600 font-medium">Green Valley Apts</span>
-                  <span className="text-gray-400">4.1 km</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-600 font-medium">Sunrise RWA</span>
-                  <span className="text-gray-400">6.8 km</span>
-                </div>
+                <div className="text-xs text-gray-400 italic">No active location pins currently mapped.</div>
               </div>
             </div>
             <button className="w-full py-2.5 border-2 border-green-600 text-green-600 rounded-xl font-bold hover:bg-green-50 transition-colors">
@@ -1589,7 +1567,7 @@ const OrgPortal = () => {
             )}
           </div>
 
-          <p className="text-sm text-center text-gray-500 max-w-[280px]">Scanning Batch <span className="font-bold text-gray-800">#2024-091</span> from Raghuma Hostel...</p>
+          <p className="text-sm text-center text-gray-500 max-w-[280px]">Scanning Batch QR code...</p>
 
           <button 
             onClick={handleSimulateScan}

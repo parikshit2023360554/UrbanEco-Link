@@ -222,49 +222,57 @@ const LeaderboardPage = () => {
         </div>
 
         {/* City Champion Section */}
-        <div className="mt-12 mb-16 px-4">
-          <div className="flex items-center gap-2 mb-6">
-            <Trophy className="w-6 h-6 text-yellow-500" />
-            <h2 className="text-2xl font-bold text-neutral-dark tracking-tight">City Champion 2026</h2>
-          </div>
-          
-          <div className="bg-gradient-to-br from-yellow-50 to-white rounded-2xl border border-yellow-100 p-8 shadow-sm flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-              <Trophy className="w-48 h-48 text-yellow-600" />
+        {top3[0] ? (
+          <div className="mt-12 mb-16 px-4">
+            <div className="flex items-center gap-2 mb-6">
+              <Trophy className="w-6 h-6 text-yellow-500" />
+              <h2 className="text-2xl font-bold text-neutral-dark tracking-tight">City Champion 2026</h2>
             </div>
             
-            <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-yellow-400/20 flex items-center justify-center border-4 border-yellow-400 shadow-md">
-                <Building2 className="w-12 h-12 text-yellow-600" />
+            <div className="bg-gradient-to-br from-yellow-50 to-white rounded-2xl border border-yellow-100 p-8 shadow-sm flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
+                <Trophy className="w-48 h-48 text-yellow-600" />
               </div>
-              <div className="absolute -bottom-2 translate-x-1/2 right-1/2 whitespace-nowrap px-4 py-1 bg-yellow-500 text-white text-[10px] font-black rounded-full shadow-sm uppercase tracking-widest border-2 border-white">
-                City No. 1
-              </div>
-            </div>
-            
-            <div className="flex-1 text-center md:text-left">
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-2">
-                <h3 className="text-2xl font-black text-neutral-dark">Raghuma Hostel</h3>
-                <span className="px-3 py-1 bg-yellow-500 text-white text-[10px] font-bold rounded-full flex items-center gap-1 shadow-sm">
-                  Certified City Champion · 2026
-                </span>
-              </div>
-              <p className="text-neutral-gray text-sm mb-4 font-medium">Bangalore • 1,340 Eco Points</p>
               
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                 <div className="flex items-center gap-2 text-xs font-bold text-yellow-700 bg-yellow-100/50 px-3 py-1.5 rounded-lg border border-yellow-200">
-                   <div className="w-2 h-2 rounded-full bg-yellow-500" />
-                   Certificate issued on 31st December 2026
-                 </div>
+              <div className="relative">
+                <div className="w-24 h-24 rounded-full bg-yellow-400/20 flex items-center justify-center border-4 border-yellow-400 shadow-md">
+                  <Building2 className="w-12 h-12 text-yellow-600" />
+                </div>
+                <div className="absolute -bottom-2 translate-x-1/2 right-1/2 whitespace-nowrap px-4 py-1 bg-yellow-500 text-white text-[10px] font-black rounded-full shadow-sm uppercase tracking-widest border-2 border-white">
+                  City No. 1
+                </div>
               </div>
+              
+              <div className="flex-1 text-center md:text-left">
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-2">
+                  <h3 className="text-2xl font-black text-neutral-dark">{top3[0].name}</h3>
+                  <span className="px-3 py-1 bg-yellow-500 text-white text-[10px] font-bold rounded-full flex items-center gap-1 shadow-sm">
+                    Certified City Champion · 2026
+                  </span>
+                </div>
+                <p className="text-neutral-gray text-sm mb-4 font-medium">{top3[0].city} • {top3[0].points} Eco Points</p>
+                
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
+                   <div className="flex items-center gap-2 text-xs font-bold text-yellow-700 bg-yellow-100/50 px-3 py-1.5 rounded-lg border border-yellow-200">
+                     <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                     Certificate issued on 31st December 2026
+                   </div>
+                </div>
+              </div>
+              
+              <button className="px-8 py-3 bg-white border-2 border-primary text-primary font-bold rounded-full hover:bg-primary hover:text-white transition-all shadow-sm flex items-center gap-2 group">
+                View Certificate
+                <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              </button>
             </div>
-            
-            <button className="px-8 py-3 bg-white border-2 border-primary text-primary font-bold rounded-full hover:bg-primary hover:text-white transition-all shadow-sm flex items-center gap-2 group">
-              View Certificate
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-            </button>
           </div>
-        </div>
+        ) : (
+          <div className="mt-12 mb-16 px-4">
+            <div className="bg-gray-50 rounded-2xl border border-gray-100 p-8 text-center text-neutral-gray font-medium">
+              City Champion certification for 2026 will be announced at the end of the year.
+            </div>
+          </div>
+        )}
 
         {/* Pagination */}
         <div className="flex items-center justify-between bg-white px-4 py-8 border-t border-gray-100 rounded-b-2xl">

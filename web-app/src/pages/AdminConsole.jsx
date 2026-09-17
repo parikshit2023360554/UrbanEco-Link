@@ -812,17 +812,17 @@ const AdminConsole = () => {
       </div>
 
       <div className="space-y-4">
-         <h3 className="text-lg font-bold text-gray-900">Pending Society Approvals (3)</h3>
+         <h3 className="text-lg font-bold text-gray-900">Pending Society Approvals (0)</h3>
          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3].map(i => (
+            {[].map(i => (
               <div key={i} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
                 <div className="flex justify-between items-start">
                   <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center font-bold text-orange-600">NH</div>
                   <span className="px-2 py-0.5 bg-orange-50 text-orange-600 rounded text-[9px] font-bold uppercase tracking-widest">New Reg</span>
                 </div>
                 <div>
-                   <h4 className="font-bold text-gray-900">Neo Heights Society</h4>
-                   <p className="text-xs text-gray-400 font-medium">South Delhi | Apartment Complex</p>
+                   <h4 className="font-bold text-gray-900">Pending Society</h4>
+                   <p className="text-xs text-gray-400 font-medium">Zone | Apartment Complex</p>
                 </div>
                 <div className="text-[10px] text-gray-500 font-medium pt-2 border-t border-gray-50 flex items-center gap-2">
                    <Clock className="w-3 h-3" /> Submitted: 2 hrs ago
@@ -835,8 +835,8 @@ const AdminConsole = () => {
                       Approve
                     </button>
                     <button 
-                      onClick={() => setIsReasonModalOpen(true)}
-                      className="py-2.5 border-2 border-red-50 text-red-500 hover:bg-red-50 rounded-xl font-bold text-xs transition-all active:scale-95"
+                      onClick={() => showToast('Approval request declined ❌')}
+                      className="py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold text-xs transition-all active:scale-95"
                     >
                       Reject
                     </button>
@@ -1511,15 +1511,15 @@ const AdminConsole = () => {
                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 pb-2">Contact Information</p>
                <div className="flex items-center gap-3 text-xs">
                   <User className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-500">Admin: <span className="font-bold text-gray-800">Parikshit Singh</span></span>
+                  <span className="text-gray-500">Admin: <span className="font-bold text-gray-800">{selectedSociety?.contact_person || selectedSociety?.name || 'Society Admin'}</span></span>
                </div>
                <div className="flex items-center gap-3 text-xs">
                   <Mail className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-800 font-medium">admin@raghumahostel.com</span>
+                  <span className="text-gray-800 font-medium">{selectedSociety?.email || 'N/A'}</span>
                </div>
                <div className="flex items-center gap-3 text-xs">
                   <Phone className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-800 font-medium">+91 98765 43210</span>
+                  <span className="text-gray-800 font-medium">{selectedSociety?.phone_number || selectedSociety?.phone || 'N/A'}</span>
                </div>
             </div>
             <div className="grid grid-cols-2 gap-3 pt-2">

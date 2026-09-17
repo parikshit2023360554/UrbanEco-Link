@@ -1,13 +1,7 @@
 import React from 'react';
 import { Leaf, Recycle, Trash2, Clock, TrendingUp } from 'lucide-react';
 
-const staticFeed = [
-  { id: 1, society: 'Raghuma Hostel', type: 'Plastic', amount: '40kg', destination: 'GreenRoad Constructions', icon: <Recycle className="w-5 h-5 text-blue-500" />, time: 'Today, 2:30 PM' },
-  { id: 2, society: 'Lotus Gardenia', type: 'Organic', amount: '120kg', destination: 'City Compost Unit', icon: <Leaf className="w-5 h-5 text-green-500" />, time: 'Today, 1:15 PM' },
-  { id: 3, society: 'Skyline Heights', type: 'Metal', amount: '15kg', destination: 'Steel-Recycle Corp', icon: <Trash2 className="w-5 h-5 text-gray-500" />, time: 'Today, 11:45 AM' },
-  { id: 4, society: 'Greenwood Residency', type: 'Plastic', amount: '85kg', destination: 'Eco-Brick Factory', icon: <Recycle className="w-5 h-5 text-blue-500" />, time: 'Yesterday, 5:20 PM' },
-  { id: 5, society: 'Orchid Enclave', type: 'Organic', amount: '60kg', destination: 'Bio-Gas Plant', icon: <Leaf className="w-5 h-5 text-green-500" />, time: 'Yesterday, 4:10 PM' },
-];
+const staticFeed = [];
 
 const JourneyFeed = () => {
   return (
@@ -27,34 +21,40 @@ const JourneyFeed = () => {
           </div>
         </div>
 
-        <div className="max-w-3xl mx-auto relative h-[450px] overflow-hidden">
+        <div className="max-w-3xl mx-auto relative min-h-[200px] overflow-hidden">
           {/* Fading Gradients */}
-          <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-primary-light/20 to-transparent z-10" />
-          <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-primary-light/20 to-transparent z-10" />
+          <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-primary-light/20 to-transparent z-10 pointer-events-none" />
+          <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-primary-light/20 to-transparent z-10 pointer-events-none" />
 
           <div className="flex flex-col gap-4 py-8">
-            {staticFeed.map((item) => (
-              <div 
-                key={item.id}
-                className="bg-white p-6 rounded-2xl border-l-4 border-primary shadow-sm hover:shadow-md transition-all flex items-center justify-between"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center">
-                    {item.icon}
+            {staticFeed.length > 0 ? (
+              staticFeed.map((item) => (
+                <div 
+                  key={item.id}
+                  className="bg-white p-6 rounded-2xl border-l-4 border-primary shadow-sm hover:shadow-md transition-all flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center">
+                      {item.icon}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-neutral-dark">{item.society}</h4>
+                      <p className="text-sm text-neutral-gray">
+                        {item.amount} {item.type} → <span className="text-primary font-medium">{item.destination}</span>
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-bold text-neutral-dark">{item.society}</h4>
-                    <p className="text-sm text-neutral-gray">
-                      {item.amount} {item.type} → <span className="text-primary font-medium">{item.destination}</span>
-                    </p>
+                  <div className="flex items-center gap-1 text-xs text-neutral-gray font-medium">
+                    <Clock className="w-3 h-3 text-primary/60" />
+                    {item.time}
                   </div>
                 </div>
-                <div className="flex items-center gap-1 text-xs text-neutral-gray font-medium">
-                  <Clock className="w-3 h-3 text-primary/60" />
-                  {item.time}
-                </div>
+              ))
+            ) : (
+              <div className="bg-white p-8 rounded-2xl border border-gray-100 text-center text-neutral-gray font-medium shadow-sm">
+                No waste diversion activity recorded today yet.
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>

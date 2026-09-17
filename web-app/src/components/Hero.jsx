@@ -46,17 +46,17 @@ const Hero = () => {
         <div className="flex flex-wrap justify-center gap-4 md:gap-8 animate-in fade-in slide-in-from-bottom-16 duration-1000 delay-300">
           <div className="flex items-center gap-3 px-6 py-3 bg-white shadow-md rounded-full border border-gray-100">
             <BarChart3 className="w-5 h-5 text-primary" />
-            <span className="font-semibold text-neutral-dark">2,400 kg</span>
+            <span className="font-semibold text-neutral-dark">0 kg</span>
             <span className="text-neutral-gray text-sm">Diverted Today</span>
           </div>
           <div className="flex items-center gap-3 px-6 py-3 bg-white shadow-md rounded-full border border-gray-100">
             <Users className="w-5 h-5 text-primary" />
-            <span className="font-semibold text-neutral-dark">38</span>
+            <span className="font-semibold text-neutral-dark">0</span>
             <span className="text-neutral-gray text-sm">Societies Active</span>
           </div>
           <div className="flex items-center gap-3 px-6 py-3 bg-white shadow-md rounded-full border border-gray-100">
             <Building2 className="w-5 h-5 text-primary" />
-            <span className="font-semibold text-neutral-dark">12</span>
+            <span className="font-semibold text-neutral-dark">0</span>
             <span className="text-neutral-gray text-sm">Partner Orgs</span>
           </div>
         </div>

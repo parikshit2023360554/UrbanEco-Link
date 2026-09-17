@@ -93,13 +93,13 @@ const DeliveryPartnerDashboard = () => {
 
   // Driver Profile & Vehicle Settings State
   const [driverSettings, setDriverSettings] = useState({
-    driver_name: 'Driver Alex Rivera',
-    phone_number: '+91 98765 43210',
-    vehicle_type: 'Electric Compactor Truck (4.5 Ton)',
-    vehicle_number: 'DL 01 AB 8923',
-    license_number: 'DL-2026-90812345',
+    driver_name: '',
+    phone_number: '',
+    vehicle_type: '',
+    vehicle_number: '',
+    license_number: '',
     duty_status: 'ACTIVE_ONLINE',
-    preferred_zone: 'Zone 4 — South Delhi / Okhla Hub',
+    preferred_zone: '',
   });
   const [savingSettings, setSavingSettings] = useState(false);
 

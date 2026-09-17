@@ -71,19 +71,19 @@ const ImpactStats = () => {
     {
       icon: <Trees className="w-8 h-8 text-primary" />,
       label: "Total CO2 Offset",
-      targetValue: 18240,
+      targetValue: 0,
       suffix: " kg",
     },
     {
       icon: <Recycle className="w-8 h-8 text-primary" />,
       label: "Plastic Roads Built",
-      targetValue: 3.2,
+      targetValue: 0,
       suffix: " km",
     },
     {
       icon: <Sprout className="w-8 h-8 text-primary" />,
       label: "Fertilizer Produced",
-      targetValue: 9800,
+      targetValue: 0,
       suffix: " kg",
     },
   ];

@@ -127,7 +127,7 @@ const ConfirmDeliveryModal = ({ shipment, onClose, onConfirm, processing }) => {
           </div>
           <div className="flex justify-between items-center text-sm">
             <span className="text-neutral-gray">Assigned Driver</span>
-            <span className="font-bold text-neutral-dark">{shipment.assigned_driver || 'Alex Rivera'}</span>
+            <span className="font-bold text-neutral-dark">{shipment.assigned_driver || 'Unassigned'}</span>
           </div>
         </div>
 
