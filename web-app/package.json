@@ -4,10 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k -p \"[{name}]\" -n \"FRONTEND,BACKEND\" -c \"cyan.bold,yellow.bold\" \"vite\" \"npm --prefix backend run dev\"",
-    "dev:frontend": "vite",
-    "dev:backend": "npm --prefix backend run dev",
-    "build": "vite build",
+    "dev": "node init && concurrently -k -p \"[{name}]\" -n \"FRONTEND,BACKEND\" -c \"cyan.bold,yellow.bold\" \"vite\" \"npm --prefix backend run dev\"",
+    "dev:frontend": "node init && vite",
+    "dev:backend": "node init && npm --prefix backend run dev",
+    "build": "node init && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
