@@ -4,16 +4,16 @@ import pickupService from '../services/pickupService';
 import batchService from '../services/batchService';
 import bwgService from '../services/bwgService';
 import authService from '../services/authService';
-import { 
-  BarChart3, 
-  Home, 
-  Trash2, 
-  Package, 
-  Truck, 
-  Settings, 
-  LogOut, 
-  Bell, 
-  Plus, 
+import {
+  BarChart3,
+  Home,
+  Trash2,
+  Package,
+  Truck,
+  Settings,
+  LogOut,
+  Bell,
+  Plus,
   TrendingUp,
   Clock,
   CheckCircle2,
@@ -50,7 +50,7 @@ import {
   Users
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, ReferenceLine
 } from 'recharts';
@@ -58,11 +58,10 @@ import {
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-      active 
-        ? 'bg-primary text-white shadow-md' 
+    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${active
+        ? 'bg-primary text-white shadow-md'
         : 'text-neutral-gray hover:bg-primary-light/50 hover:text-primary'
-    }`}
+      }`}
   >
     <Icon className="w-5 h-5" />
     <span className="font-semibold text-sm">{label}</span>
@@ -70,7 +69,7 @@ const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
 );
 
 const StatCard = ({ title, value, subtext, trend, icon: Icon, colorClass }) => (
-  <motion.div 
+  <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
@@ -141,15 +140,14 @@ const BinCard = ({ type, percentage, total, capacity, daysToFull, destination, s
       <div className="flex justify-between items-start mb-6">
         <div>
           <h4 className="font-bold text-neutral-dark text-lg">{type}</h4>
-          <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full ${
-            urgent ? 'bg-red-100 text-red-600' : 'bg-primary-light text-primary'
-          }`}>
+          <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full ${urgent ? 'bg-red-100 text-red-600' : 'bg-primary-light text-primary'
+            }`}>
             {status}
           </span>
         </div>
         <CircularGauge percentage={percentage} color={color} />
       </div>
-      
+
       <div className="space-y-3">
         <div className="flex justify-between text-sm">
           <span className="text-neutral-gray">Stored Capacity</span>
@@ -169,12 +167,12 @@ const MiniBarChart = ({ data, color }) => {
   return (
     <div className="flex items-end gap-1 h-12 w-full">
       {data.map((val, i) => (
-        <motion.div 
+        <motion.div
           key={i}
           initial={{ height: 0 }}
           animate={{ height: `${(val / max) * 100}%` }}
           className="flex-1 rounded-t-sm"
-          style={{ 
+          style={{
             backgroundColor: color,
             opacity: 0.4 + (i / data.length) * 0.6
           }}
@@ -186,14 +184,13 @@ const MiniBarChart = ({ data, color }) => {
 
 const LargeBinCard = ({ type, percentage, total, capacity, daysToFull, destination, status, history, onRequestPickup, onViewDetails, urgent, color }) => {
   const isRed = percentage >= 80;
-  
+
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`bg-white p-6 rounded-3xl shadow-sm border transition-all ${
-        urgent ? 'border-red-200 shadow-red-50 ring-1 ring-red-100' : 'border-gray-100'
-      }`}
+      className={`bg-white p-6 rounded-3xl shadow-sm border transition-all ${urgent ? 'border-red-200 shadow-red-50 ring-1 ring-red-100' : 'border-gray-100'
+        }`}
     >
       <div className="flex justify-between items-start mb-6">
         <div className="flex items-center gap-3">
@@ -202,9 +199,8 @@ const LargeBinCard = ({ type, percentage, total, capacity, daysToFull, destinati
           </div>
           <div>
             <h4 className="font-bold text-neutral-dark">{type}</h4>
-            <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
-              urgent ? 'bg-red-100 text-red-600' : status.includes('Active') ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'
-            }`}>
+            <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${urgent ? 'bg-red-100 text-red-600' : status.includes('Active') ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'
+              }`}>
               {status}
             </span>
           </div>
@@ -243,7 +239,7 @@ const LargeBinCard = ({ type, percentage, total, capacity, daysToFull, destinati
       </div>
 
       {urgent ? (
-        <button 
+        <button
           onClick={onRequestPickup}
           className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-md shadow-red-100 active:scale-95"
         >
@@ -291,7 +287,7 @@ const RequestPickupModal = ({ onClose, onSubmit }) => {
             <X className="w-5 h-5 text-neutral-gray" />
           </button>
         </div>
-        
+
         {error && (
           <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-xs font-bold">{error}</div>
         )}
@@ -299,8 +295,8 @@ const RequestPickupModal = ({ onClose, onSubmit }) => {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-xs font-bold text-neutral-gray uppercase tracking-widest mb-2">Select Waste Category</label>
-            <select 
-              value={stream} 
+            <select
+              value={stream}
               onChange={e => setStream(e.target.value)}
               className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all"
             >
@@ -309,19 +305,19 @@ const RequestPickupModal = ({ onClose, onSubmit }) => {
               <option value="HAZARDOUS">Hazardous Non-Recyclable</option>
             </select>
           </div>
-          
+
           <div>
             <label className="block text-xs font-bold text-neutral-gray uppercase tracking-widest mb-2">Estimated Weight (kg)</label>
-            <input 
-              type="number" 
+            <input
+              type="number"
               value={weight}
               onChange={e => setWeight(e.target.value)}
               placeholder="e.g. 150"
               className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all"
             />
           </div>
-          
-          <button 
+
+          <button
             type="submit"
             disabled={loading}
             className="w-full bg-primary hover:bg-primary-dark text-white py-4 rounded-xl font-bold text-sm transition-all active:scale-95 shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
@@ -335,13 +331,13 @@ const RequestPickupModal = ({ onClose, onSubmit }) => {
 };
 
 const TrackPickupModal = ({ batchId, onClose }) => (
-  <motion.div 
+  <motion.div
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
     exit={{ opacity: 0 }}
     className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
   >
-    <motion.div 
+    <motion.div
       initial={{ scale: 0.9, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       exit={{ scale: 0.9, opacity: 0 }}
@@ -353,12 +349,12 @@ const TrackPickupModal = ({ batchId, onClose }) => (
           <X className="w-5 h-5 text-neutral-gray" />
         </button>
       </div>
-      
+
       <div className="mb-8">
         <p className="text-xs text-neutral-gray font-bold uppercase tracking-widest mb-1">Batch ID</p>
         <p className="text-lg font-black text-neutral-dark tracking-tight">#{batchId}</p>
       </div>
-      
+
       <div className="space-y-0">
         {[
           { label: 'Batch Created', time: '26 Mar, 6:00 AM', status: 'completed' },
@@ -370,10 +366,9 @@ const TrackPickupModal = ({ batchId, onClose }) => (
         ].map((step, idx, arr) => (
           <div key={idx} className="flex gap-4">
             <div className="flex flex-col items-center">
-              <div className={`w-3 h-3 rounded-full mt-1.5 ${
-                step.status === 'completed' ? 'bg-primary' : 
-                step.status === 'active' ? 'bg-primary animate-pulse' : 'bg-gray-200'
-              }`} />
+              <div className={`w-3 h-3 rounded-full mt-1.5 ${step.status === 'completed' ? 'bg-primary' :
+                  step.status === 'active' ? 'bg-primary animate-pulse' : 'bg-gray-200'
+                }`} />
               {idx !== arr.length - 1 && (
                 <div className={`w-0.5 grow my-1 ${step.status === 'completed' ? 'bg-primary' : 'bg-gray-100'}`} />
               )}
@@ -385,8 +380,8 @@ const TrackPickupModal = ({ batchId, onClose }) => (
           </div>
         ))}
       </div>
-      
-      <button 
+
+      <button
         onClick={onClose}
         className="w-full bg-gray-50 hover:bg-gray-100 text-neutral-dark py-4 rounded-xl font-bold text-sm transition-all active:scale-95 border border-gray-100"
       >
@@ -492,9 +487,8 @@ const BatchDetailsModal = ({ batch, onClose }) => {
                     <p className="font-bold text-neutral-dark">{fac.factory_name || `Factory ${idx + 1}`}</p>
                     <p className="text-[10px] text-neutral-gray font-medium">Allocated Payload: <span className="font-bold text-primary">{fac.allocated_weight_kg} kg</span></p>
                   </div>
-                  <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
-                    fac.status === 'DELIVERED' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-800'
-                  }`}>
+                  <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${fac.status === 'DELIVERED' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-800'
+                    }`}>
                     {fac.status === 'DELIVERED' ? '✅ Delivered' : '⏳ Pending Intake'}
                   </span>
                 </div>
@@ -530,7 +524,7 @@ const ManualBatchModal = ({ onClose, onCreate }) => {
           <h3 className="font-bold text-neutral-dark text-xl">⚠️ Create Batch Manually</h3>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X className="w-5 h-5 text-neutral-gray" /></button>
         </div>
-        
+
         {step === 'form' ? (
           <>
             <div className="bg-orange-50 border border-orange-100 text-orange-800 p-4 rounded-xl text-xs font-bold leading-relaxed mb-6">
@@ -539,9 +533,9 @@ const ManualBatchModal = ({ onClose, onCreate }) => {
             <div className="space-y-4 mb-8 text-left">
               <div>
                 <label className="block text-[10px] font-black text-neutral-gray uppercase tracking-widest mb-1.5">Select Bin Type</label>
-                <select 
+                <select
                   className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow"
-                  value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}
+                  value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })}
                 >
                   <option value="Organic">Organic</option>
                   <option value="Recyclable">Recyclable</option>
@@ -550,18 +544,18 @@ const ManualBatchModal = ({ onClose, onCreate }) => {
               </div>
               <div>
                 <label className="block text-[10px] font-black text-neutral-gray uppercase tracking-widest mb-1.5">Estimated Weight (kg)</label>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   placeholder="e.g. 150"
                   className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow"
-                  value={formData.weight} onChange={e => setFormData({...formData, weight: e.target.value})}
+                  value={formData.weight} onChange={e => setFormData({ ...formData, weight: e.target.value })}
                 />
               </div>
               <div>
                 <label className="block text-[10px] font-black text-neutral-gray uppercase tracking-widest mb-1.5">Reason for Manual Creation</label>
-                <select 
+                <select
                   className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow"
-                  value={formData.reason} onChange={e => setFormData({...formData, reason: e.target.value})}
+                  value={formData.reason} onChange={e => setFormData({ ...formData, reason: e.target.value })}
                 >
                   <option value="Sensor Malfunction">Sensor Malfunction</option>
                   <option value="Sensor Offline">Sensor Offline</option>
@@ -571,11 +565,11 @@ const ManualBatchModal = ({ onClose, onCreate }) => {
               </div>
               <div>
                 <label className="block text-[10px] font-black text-neutral-gray uppercase tracking-widest mb-1.5">Additional Notes</label>
-                <textarea 
+                <textarea
                   rows="2"
                   placeholder="Optional"
                   className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow resize-none"
-                  value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})}
+                  value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })}
                 />
               </div>
             </div>
@@ -643,10 +637,10 @@ const CollectionDetailsModal = ({ pickup, onClose }) => {
           ))}
         </div>
         <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl mb-6">
-           <div className="w-12 h-12 bg-white rounded-lg border border-gray-200 flex items-center justify-center">
-             <QrCode className="w-6 h-6 text-neutral-gray opacity-40 shrink-0" />
-           </div>
-           <p className="text-xs font-bold text-neutral-gray">Driver will scan this on arrival</p>
+          <div className="w-12 h-12 bg-white rounded-lg border border-gray-200 flex items-center justify-center">
+            <QrCode className="w-6 h-6 text-neutral-gray opacity-40 shrink-0" />
+          </div>
+          <p className="text-xs font-bold text-neutral-gray">Driver will scan this on arrival</p>
         </div>
         <button onClick={onClose} className="w-full bg-gray-100 hover:bg-gray-200 text-neutral-dark py-3 rounded-xl font-bold text-sm transition-all active:scale-95">Close</button>
       </motion.div>
@@ -677,20 +671,20 @@ const CollectionHistoryModal = ({ row, onClose }) => {
             <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${row.type === 'Organic' ? 'bg-green-100 text-green-700' : row.type === 'Recyclable' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>{row.type}</span>
           </div>
           <div className="flex justify-between border-b border-gray-100 pb-3">
-             <span className="text-sm text-neutral-gray">Weight</span>
-             <span className="text-sm font-black text-primary">{row.weight}</span>
+            <span className="text-sm text-neutral-gray">Weight</span>
+            <span className="text-sm font-black text-primary">{row.weight}</span>
           </div>
           <div className="flex justify-between">
-             <span className="text-sm text-neutral-gray">Organization</span>
-             <span className="text-sm font-bold text-neutral-dark">{row.partner}</span>
+            <span className="text-sm text-neutral-gray">Organization</span>
+            <span className="text-sm font-bold text-neutral-dark">{row.partner}</span>
           </div>
         </div>
         <div className="bg-green-50 p-4 rounded-xl mb-6">
-           <div className="flex items-center gap-2 mb-2">
-             <CheckCircle2 className="w-5 h-5 text-green-600" />
-             <span className="font-bold text-green-700">QR Verified properly</span>
-           </div>
-           <p className="text-xs text-green-700/80">Organization driver scanned the respective QR code to accept weight and confirm completion.</p>
+          <div className="flex items-center gap-2 mb-2">
+            <CheckCircle2 className="w-5 h-5 text-green-600" />
+            <span className="font-bold text-green-700">QR Verified properly</span>
+          </div>
+          <p className="text-xs text-green-700/80">Organization driver scanned the respective QR code to accept weight and confirm completion.</p>
         </div>
         <button onClick={onClose} className="w-full bg-gray-100 hover:bg-gray-200 text-neutral-dark py-3 rounded-xl font-bold text-sm transition-all active:scale-95">Close</button>
       </motion.div>
@@ -716,7 +710,7 @@ const PartnerDetailsModal = ({ org, onClose }) => {
         </div>
         <div className="space-y-4 mb-6">
           <div className="flex items-center gap-2 text-sm font-bold text-neutral-dark bg-gray-50 p-3 rounded-xl">
-             <Leaf className="w-4 h-4 text-primary" /> Collects: {org.waste}
+            <Leaf className="w-4 h-4 text-primary" /> Collects: {org.waste}
           </div>
           <div className="bg-gray-50 p-4 rounded-xl">
             <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-neutral-gray mb-2">
@@ -729,18 +723,18 @@ const PartnerDetailsModal = ({ org, onClose }) => {
             <p className="text-xs font-bold text-neutral-gray">{perc}% collected so far</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
-             <div className="bg-gray-50 p-3 rounded-xl flex flex-col items-center">
-               <MapPin className="w-5 h-5 text-neutral-gray mb-1" />
-               <span className="text-xs font-bold text-neutral-dark">{org.radius}</span>
-             </div>
-             <div className="bg-gray-50 p-3 rounded-xl flex flex-col items-center">
-               <History className="w-5 h-5 text-neutral-gray mb-1" />
-               <span className="text-xs font-bold text-neutral-dark">Since {org.since}</span>
-             </div>
+            <div className="bg-gray-50 p-3 rounded-xl flex flex-col items-center">
+              <MapPin className="w-5 h-5 text-neutral-gray mb-1" />
+              <span className="text-xs font-bold text-neutral-dark">{org.radius}</span>
+            </div>
+            <div className="bg-gray-50 p-3 rounded-xl flex flex-col items-center">
+              <History className="w-5 h-5 text-neutral-gray mb-1" />
+              <span className="text-xs font-bold text-neutral-dark">Since {org.since}</span>
+            </div>
           </div>
           <div className="bg-primary/5 p-4 rounded-xl text-center border border-primary/10">
-             <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">Total Collections Done</p>
-             <p className="text-2xl font-black text-neutral-dark">142</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">Total Collections Done</p>
+            <p className="text-2xl font-black text-neutral-dark">142</p>
           </div>
         </div>
         <button onClick={onClose} className="w-full bg-gray-100 hover:bg-gray-200 text-neutral-dark py-3 rounded-xl font-bold text-sm transition-all active:scale-95">Close</button>
@@ -796,7 +790,7 @@ const Dashboard = () => {
 
       const pickups = res.pickups || [];
       const dbBatches = batchRes.batches || [];
-      
+
       // Deduplicate combined records by QR code or ID
       const seen = new Set();
       const combined = [];
@@ -839,8 +833,8 @@ const Dashboard = () => {
           stepNum = 4;
           dueLabel = 'Delivered & Points Earned';
         } else if (isPartial) {
-          displayStatus = totalAllocations > 0 
-            ? `Partially Delivered (${confirmedCount}/${totalAllocations} Confirmed)` 
+          displayStatus = totalAllocations > 0
+            ? `Partially Delivered (${confirmedCount}/${totalAllocations} Confirmed)`
             : 'Partially Delivered';
           statusColor = 'bg-amber-100 text-amber-800 border border-amber-300';
           stepNum = 3;
@@ -947,7 +941,7 @@ const Dashboard = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+
   // Settings Toggles State
   const [toggles, setToggles] = useState({
     bin80: true,
@@ -961,7 +955,7 @@ const Dashboard = () => {
     dailyReport: false,
     twoFactor: false
   });
-  
+
   const handleToggle = (key) => setToggles(prev => ({ ...prev, [key]: !prev[key] }));
 
   // Settings Sliders State
@@ -974,7 +968,7 @@ const Dashboard = () => {
     nonWarn: 60
   });
 
-  const handleSlider = (e, key) => setSliders(prev => ({...prev, [key]: parseInt(e.target.value)}));
+  const handleSlider = (e, key) => setSliders(prev => ({ ...prev, [key]: parseInt(e.target.value) }));
 
   const navItems = [
     { id: 'Overview', icon: Home, label: 'Overview' },
@@ -1003,7 +997,7 @@ const Dashboard = () => {
 
           {/* ROW 1: Large Bin Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <LargeBinCard 
+            <LargeBinCard
               type={organicBin.type}
               percentage={organicBin.percentage}
               total={organicBin.total}
@@ -1016,7 +1010,7 @@ const Dashboard = () => {
               history={organicBin.history}
               onViewDetails={() => setSelectedBinDetails(organicBin)}
             />
-            <LargeBinCard 
+            <LargeBinCard
               type={recyclableBin.type}
               percentage={recyclableBin.percentage}
               total={recyclableBin.total}
@@ -1029,7 +1023,7 @@ const Dashboard = () => {
               history={recyclableBin.history}
               onViewDetails={() => setSelectedBinDetails(recyclableBin)}
             />
-            <LargeBinCard 
+            <LargeBinCard
               type={nonRecyclableBin.type}
               percentage={nonRecyclableBin.percentage}
               total={nonRecyclableBin.total}
@@ -1109,7 +1103,7 @@ const Dashboard = () => {
                       <span className="text-xs font-bold text-neutral-gray">{pred.date}</span>
                     </div>
                     <div className="h-2 w-full bg-gray-100 rounded-full mb-3 overflow-hidden">
-                      <motion.div 
+                      <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: pred.val }}
                         className={`h-full ${pred.color}`}
@@ -1145,7 +1139,7 @@ const Dashboard = () => {
               <p className="text-sm text-neutral-gray">Auto-generated batches when bin reaches collection threshold</p>
             </div>
             <div className="relative">
-              <button 
+              <button
                 onMouseEnter={() => setIsTooltipOpen(true)}
                 onMouseLeave={() => setIsTooltipOpen(false)}
                 onClick={() => setIsTooltipOpen(!isTooltipOpen)}
@@ -1155,7 +1149,7 @@ const Dashboard = () => {
               </button>
               <AnimatePresence>
                 {isTooltipOpen && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
@@ -1184,7 +1178,7 @@ const Dashboard = () => {
                 <span className="text-xs font-bold text-neutral-dark">Non-Recyclable Sensor — <span className="text-red-500">OFFLINE</span></span>
               </div>
             </div>
-            <button 
+            <button
               onClick={() => setIsManualBatchModalOpen(true)}
               className="flex items-center gap-2 text-xs font-bold border border-gray-200 text-neutral-dark hover:bg-gray-50 px-4 py-2 rounded-xl transition-colors active:scale-95"
             >
@@ -1221,7 +1215,7 @@ const Dashboard = () => {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {activeBatches.map((batch, i) => (
-                <motion.div 
+                <motion.div
                   key={i}
                   initial={{ opacity: 0, x: i % 2 === 0 ? -20 : 20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -1256,22 +1250,21 @@ const Dashboard = () => {
                       <p className={`text-sm font-bold ${batch.urgent ? 'text-red-600' : 'text-primary'}`}>{batch.due}</p>
                     </div>
                     <div className="col-span-2">
-                       <p className="text-[10px] text-neutral-gray uppercase font-black tracking-widest mb-1">Assigned Partner</p>
-                       <p className="text-sm font-bold text-neutral-dark">{batch.partner}</p>
+                      <p className="text-[10px] text-neutral-gray uppercase font-black tracking-widest mb-1">Assigned Partner</p>
+                      <p className="text-sm font-bold text-neutral-dark">{batch.partner}</p>
                     </div>
                   </div>
 
                   <div className="mb-8">
                     <div className="flex justify-between text-[10px] font-bold text-neutral-gray uppercase mb-4">
-                       <span>Progress</span>
-                       <span className="text-primary italic">Step {batch.step + 1} of 4</span>
+                      <span>Progress</span>
+                      <span className="text-primary italic">Step {batch.step + 1} of 4</span>
                     </div>
                     <div className="flex items-center gap-1">
                       {['Batch Created', 'Assigned', 'Awaiting Pickup', 'Confirmed'].map((s, idx) => (
                         <div key={idx} className="flex-1">
-                          <div className={`h-1.5 rounded-full mb-2 ${
-                            idx < batch.step ? 'bg-primary' : idx === batch.step ? 'bg-primary animate-pulse' : 'bg-gray-100'
-                          }`} />
+                          <div className={`h-1.5 rounded-full mb-2 ${idx < batch.step ? 'bg-primary' : idx === batch.step ? 'bg-primary animate-pulse' : 'bg-gray-100'
+                            }`} />
                           <p className={`text-[8px] font-bold text-center ${idx === batch.step ? 'text-primary' : 'text-neutral-gray'}`}>{s}</p>
                         </div>
                       ))}
@@ -1293,7 +1286,7 @@ const Dashboard = () => {
                       </div>
                       <div className="flex-1">
                         <p className="text-xs font-bold text-neutral-gray mb-2">Driver will scan this on arrival</p>
-                        <button 
+                        <button
                           onClick={() => setSelectedBatch(batch)}
                           className="w-full border border-primary text-primary hover:bg-primary/5 py-2 rounded-xl font-bold text-xs transition-all active:scale-95"
                         >
@@ -1318,9 +1311,8 @@ const Dashboard = () => {
                   <button
                     key={tab}
                     onClick={() => setBatchFilter(tab)}
-                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      batchFilter === tab ? 'bg-white text-primary shadow-sm' : 'text-neutral-gray hover:text-neutral-dark'
-                    }`}
+                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${batchFilter === tab ? 'bg-white text-primary shadow-sm' : 'text-neutral-gray hover:text-neutral-dark'
+                      }`}
                   >
                     {tab}
                   </button>
@@ -1342,24 +1334,22 @@ const Dashboard = () => {
                 </thead>
                 <tbody className="text-sm">
                   {filteredHistory.map((row, idx) => (
-                    <tr key={idx} className={`border-b border-gray-50/50 hover:bg-gray-50/30 transition-colors ${
-                      row.status === 'In Progress' ? 'bg-blue-50/20' : row.status === 'Pending' ? 'bg-orange-50/20' : ''
-                    }`}>
+                    <tr key={idx} className={`border-b border-gray-50/50 hover:bg-gray-50/30 transition-colors ${row.status === 'In Progress' ? 'bg-blue-50/20' : row.status === 'Pending' ? 'bg-orange-50/20' : ''
+                      }`}>
                       <td className="px-6 py-5 font-bold text-neutral-dark">#{row.id}</td>
                       <td className="px-6 py-5 text-neutral-gray font-medium">{row.type}</td>
                       <td className="px-6 py-5 font-bold text-neutral-dark">{row.weight}</td>
                       <td className="px-6 py-5 text-neutral-gray">{row.partner}</td>
                       <td className="px-6 py-5 font-bold text-neutral-dark">{row.date}</td>
                       <td className="px-6 py-5">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          row.status === 'Completed' ? 'bg-green-100 text-green-700' :
-                          row.status === 'In Progress' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
-                        }`}>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${row.status === 'Completed' ? 'bg-green-100 text-green-700' :
+                            row.status === 'In Progress' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
+                          }`}>
                           {row.status}
                         </span>
                       </td>
                       <td className="px-6 py-5">
-                        <button 
+                        <button
                           onClick={() => setSelectedBatchDetails(row)}
                           className="text-primary hover:text-primary-dark font-bold text-xs flex items-center gap-1"
                         >
@@ -1464,7 +1454,7 @@ const Dashboard = () => {
               <h1 className="text-2xl font-bold text-neutral-dark">Collection Schedule</h1>
               <p className="text-sm text-neutral-gray">All scheduled and completed pickups by assigned organizations</p>
             </div>
-            <button 
+            <button
               onClick={() => setIsRequestModalOpen(true)}
               className="bg-primary hover:bg-primary-dark text-white px-6 py-2.5 rounded-full font-bold text-sm transition-all active:scale-95 shadow-lg shadow-primary/20 flex items-center gap-2"
             >
@@ -1562,9 +1552,8 @@ const Dashboard = () => {
                   <button
                     key={tab}
                     onClick={() => setCollectionFilter(tab)}
-                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      collectionFilter === tab ? 'bg-white text-primary shadow-sm' : 'text-neutral-gray hover:text-neutral-dark'
-                    }`}
+                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${collectionFilter === tab ? 'bg-white text-primary shadow-sm' : 'text-neutral-gray hover:text-neutral-dark'
+                      }`}
                   >
                     {tab}
                   </button>
@@ -1692,9 +1681,8 @@ const Dashboard = () => {
                 <button
                   key={t}
                   onClick={() => setAnalyticsPeriod(t)}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    analyticsPeriod === t ? 'bg-primary text-white shadow-lg' : 'text-neutral-gray hover:text-neutral-dark'
-                  }`}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${analyticsPeriod === t ? 'bg-primary text-white shadow-lg' : 'text-neutral-gray hover:text-neutral-dark'
+                    }`}
                 >
                   {t}
                 </button>
@@ -1729,13 +1717,13 @@ const Dashboard = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={barData}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold', fill: '#9CA3AF'}} />
-                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold', fill: '#9CA3AF'}} />
-                    <Tooltip 
-                      contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px'}}
-                      cursor={{fill: '#F9FAFB'}}
+                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#9CA3AF' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#9CA3AF' }} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }}
+                      cursor={{ fill: '#F9FAFB' }}
                     />
-                    <Legend iconType="circle" wrapperStyle={{paddingTop: '20px', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px'}} />
+                    <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }} />
                     <Bar name="Organic" dataKey="organic" fill="#16A34A" radius={[4, 4, 0, 0]} />
                     <Bar name="Recyclable" dataKey="recyclable" fill="#3B82F6" radius={[4, 4, 0, 0]} />
                     <Bar name="Non-Recyclable" dataKey="non" fill="#6B7280" radius={[4, 4, 0, 0]} />
@@ -1773,10 +1761,10 @@ const Dashboard = () => {
                 {pieData.map((d, i) => (
                   <div key={i} className="flex items-center justify-between text-xs font-bold">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full" style={{backgroundColor: d.color}} />
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.color }} />
                       <span className="text-neutral-gray">{d.name}</span>
                     </div>
-                    <span className="text-neutral-dark">{d.value} kg ({Math.round(d.value/totalPieValue*100)}%)</span>
+                    <span className="text-neutral-dark">{d.value} kg ({Math.round(d.value / totalPieValue * 100)}%)</span>
                   </div>
                 ))}
               </div>
@@ -1791,13 +1779,13 @@ const Dashboard = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={lineData}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold', fill: '#9CA3AF'}} />
-                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold', fill: '#9CA3AF'}} />
-                    <Tooltip 
-                      contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px'}}
+                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#9CA3AF' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#9CA3AF' }} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }}
                     />
-                    <ReferenceLine y={1000} stroke="#EF4444" strokeDasharray="3 3" label={{value: 'A++ Threshold', position: 'insideBottomRight', fontSize: 10, fontWeight: 'bold', fill: '#EF4444'}} />
-                    <Line type="monotone" dataKey="points" stroke="#16A34A" strokeWidth={4} dot={{fill: '#16A34A', strokeWidth: 2, r: 6, stroke: '#fff'}} activeDot={{r: 8}} />
+                    <ReferenceLine y={1000} stroke="#EF4444" strokeDasharray="3 3" label={{ value: 'A++ Threshold', position: 'insideBottomRight', fontSize: 10, fontWeight: 'bold', fill: '#EF4444' }} />
+                    <Line type="monotone" dataKey="points" stroke="#16A34A" strokeWidth={4} dot={{ fill: '#16A34A', strokeWidth: 2, r: 6, stroke: '#fff' }} activeDot={{ r: 8 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -1812,19 +1800,19 @@ const Dashboard = () => {
                 ].map((eff, i) => (
                   <div key={i}>
                     <div className="flex justify-between items-center mb-2">
-                       <span className="text-xs font-bold text-neutral-dark">{eff.label}</span>
-                       <span className="text-xs font-black text-neutral-dark">{eff.val}%</span>
+                      <span className="text-xs font-bold text-neutral-dark">{eff.label}</span>
+                      <span className="text-xs font-black text-neutral-dark">{eff.val}%</span>
                     </div>
                     <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden mb-1">
-                       <motion.div 
+                      <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${eff.val}%` }}
                         className={`h-full ${eff.color}`}
-                       />
+                      />
                     </div>
                     <div className="flex justify-between text-[10px] font-bold text-neutral-gray uppercase tracking-widest">
-                       <span>Collected / Quota</span>
-                       <span>{eff.kg} kg</span>
+                      <span>Collected / Quota</span>
+                      <span>{eff.kg} kg</span>
                     </div>
                   </div>
                 ))}
@@ -1834,28 +1822,28 @@ const Dashboard = () => {
 
           {/* ROW 4: Comparison Table */}
           <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-             <div className="p-6 border-b border-gray-50">
-               <h3 className="font-bold text-neutral-dark">Month-on-Month Performance</h3>
-             </div>
-             <div className="overflow-x-auto">
-               <table className="w-full text-left">
-                 <thead className="bg-gray-50 text-[10px] font-black uppercase tracking-widest text-neutral-gray">
-                   <tr>
-                     <th className="px-6 py-4">Month</th>
-                     <th className="px-6 py-4">Organic (kg)</th>
-                     <th className="px-6 py-4">Recyclable (kg)</th>
-                     <th className="px-6 py-4">Non-Recyclable (kg)</th>
-                     <th className="px-6 py-4">Total (kg)</th>
-                     <th className="px-6 py-4">Eco Points</th>
-                     <th className="px-6 py-4">Rank</th>
-                   </tr>
-                 </thead>
-                 <tbody className="text-sm divide-y divide-gray-50">
-                   {[
-                     { month: 'Jan 2026', org: '480', rec: '310', non: '520', tot: '1,310', pts: '280', rank: 'B+', color: 'text-orange-600', bg: 'bg-orange-50' },
-                     { month: 'Feb 2026', org: '510', rec: '340', non: '540', tot: '1,390', pts: '285', rank: 'A', color: 'text-blue-600', bg: 'bg-blue-50' },
-                     { month: 'Mar 2026', org: '144', rec: '90', non: '176', tot: '410', pts: '95', rank: 'A+', inProg: true, color: 'text-primary', bg: 'bg-green-50' },
-                   ].map((row, i) => (
+            <div className="p-6 border-b border-gray-50">
+              <h3 className="font-bold text-neutral-dark">Month-on-Month Performance</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-gray-50 text-[10px] font-black uppercase tracking-widest text-neutral-gray">
+                  <tr>
+                    <th className="px-6 py-4">Month</th>
+                    <th className="px-6 py-4">Organic (kg)</th>
+                    <th className="px-6 py-4">Recyclable (kg)</th>
+                    <th className="px-6 py-4">Non-Recyclable (kg)</th>
+                    <th className="px-6 py-4">Total (kg)</th>
+                    <th className="px-6 py-4">Eco Points</th>
+                    <th className="px-6 py-4">Rank</th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm divide-y divide-gray-50">
+                  {[
+                    { month: 'Jan 2026', org: '480', rec: '310', non: '520', tot: '1,310', pts: '280', rank: 'B+', color: 'text-orange-600', bg: 'bg-orange-50' },
+                    { month: 'Feb 2026', org: '510', rec: '340', non: '540', tot: '1,390', pts: '285', rank: 'A', color: 'text-blue-600', bg: 'bg-blue-50' },
+                    { month: 'Mar 2026', org: '144', rec: '90', non: '176', tot: '410', pts: '95', rank: 'A+', inProg: true, color: 'text-primary', bg: 'bg-green-50' },
+                  ].map((row, i) => (
                     <tr key={i} className={`hover:bg-gray-50/50 transition-colors ${row.inProg ? 'bg-primary/5' : ''}`}>
                       <td className="px-6 py-5 font-bold text-neutral-dark">
                         {row.month}
@@ -1867,15 +1855,15 @@ const Dashboard = () => {
                       <td className="px-6 py-5 font-black text-neutral-dark">{row.tot}</td>
                       <td className="px-6 py-5 font-black text-primary">+{row.pts}</td>
                       <td className="px-6 py-5">
-                         <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${row.bg} ${row.color}`}>
-                           {row.rank}
-                         </span>
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${row.bg} ${row.color}`}>
+                          {row.rank}
+                        </span>
                       </td>
                     </tr>
-                   ))}
-                 </tbody>
-               </table>
-             </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* ROW 5: Insights */}
@@ -1920,7 +1908,7 @@ const Dashboard = () => {
               <p className="text-sm text-neutral-gray">Manage your society profile and preferences</p>
             </div>
             {(settingsTab === 'Society Profile' || settingsTab === 'Security' || settingsTab === 'Bin Configuration') && (
-              <button 
+              <button
                 onClick={() => showToast(settingsTab === 'Security' ? 'Password updated successfully ✅' : 'Profile updated successfully ✅')}
                 className="bg-primary hover:bg-primary-dark text-white px-8 py-2.5 rounded-full font-bold text-sm transition-all active:scale-95 shadow-lg shadow-primary/20 whitespace-nowrap"
               >
@@ -1936,11 +1924,10 @@ const Dashboard = () => {
                 <button
                   key={item.id}
                   onClick={() => setSettingsTab(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-4 rounded-2xl transition-all font-bold text-sm ${
-                    settingsTab === item.id 
-                      ? 'bg-primary text-white shadow-md' 
+                  className={`w-full flex items-center gap-3 px-4 py-4 rounded-2xl transition-all font-bold text-sm ${settingsTab === item.id
+                      ? 'bg-primary text-white shadow-md'
                       : 'text-neutral-gray hover:bg-primary/5 hover:text-primary'
-                  }`}
+                    }`}
                 >
                   <item.icon className="w-5 h-5" />
                   {item.id}
@@ -1950,7 +1937,7 @@ const Dashboard = () => {
 
             {/* RIGHT CONTENT PANEL */}
             <div className="w-full md:w-[70%]">
-              
+
               {/* Society Profile */}
               {settingsTab === 'Society Profile' && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
@@ -1958,7 +1945,7 @@ const Dashboard = () => {
                     <h2 className="text-xl font-bold text-neutral-dark">Society Profile</h2>
                     <p className="text-sm text-neutral-gray">Basic information about your society</p>
                   </div>
-                  
+
                   <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-8 items-start">
                     <div className="flex flex-col items-center gap-4">
                       <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center text-primary text-3xl font-black border-4 border-white shadow-lg">
@@ -1968,7 +1955,7 @@ const Dashboard = () => {
                         <Upload className="w-4 h-4" /> Upload Logo
                       </button>
                     </div>
-                    
+
                     <div className="flex-1 space-y-6 w-full">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
@@ -1993,12 +1980,12 @@ const Dashboard = () => {
                           <input type="text" placeholder="Pincode" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
                         </div>
                       </div>
-                      
+
                       <div>
                         <label className="block text-xs font-bold text-neutral-gray uppercase tracking-widest mb-2">Full Address</label>
                         <textarea placeholder="Street Address, City, State" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:ring-2 focus:ring-primary/20 outline-none transition-all h-24 resize-none" />
                       </div>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                           <label className="block text-xs font-bold text-neutral-gray uppercase tracking-widest mb-2">Total Units / Flats</label>
@@ -2027,8 +2014,8 @@ const Dashboard = () => {
                           </div>
                         </div>
                       </div>
-                      
-                      <button 
+
+                      <button
                         onClick={() => showToast('Profile updated successfully ✅')}
                         className="w-full md:w-auto bg-primary hover:bg-primary-dark text-white px-8 py-4 rounded-xl font-bold text-sm transition-all active:scale-95 shadow-lg shadow-primary/20 md:hidden"
                       >
@@ -2046,7 +2033,7 @@ const Dashboard = () => {
                     <h2 className="text-xl font-bold text-neutral-dark">Notification Preferences</h2>
                     <p className="text-sm text-neutral-gray">Choose what alerts you want to receive</p>
                   </div>
-                  
+
                   <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                     <div className="p-6 border-b border-gray-50">
                       <h3 className="flex items-center gap-2 font-bold text-neutral-dark"><Trash2 className="w-5 h-5 text-neutral-gray" /> Bin Alerts</h3>
@@ -2065,7 +2052,7 @@ const Dashboard = () => {
                         </div>
                       ))}
                     </div>
-                    
+
                     <div className="p-6 border-b border-gray-50 bg-gray-50/50">
                       <h3 className="flex items-center gap-2 font-bold text-neutral-dark"><Package className="w-5 h-5 text-neutral-gray" /> Batch Alerts</h3>
                     </div>
@@ -2123,39 +2110,38 @@ const Dashboard = () => {
                         <div className="flex justify-between items-center">
                           <h3 className="font-black text-lg text-neutral-dark">{bin.type}</h3>
                           <div className="text-right">
-                             <p className="text-[10px] text-neutral-gray uppercase font-black tracking-widest">Current Fill</p>
-                             <p className="text-sm font-bold text-neutral-dark">{bin.current}</p>
+                            <p className="text-[10px] text-neutral-gray uppercase font-black tracking-widest">Current Fill</p>
+                            <p className="text-sm font-bold text-neutral-dark">{bin.current}</p>
                           </div>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                           <div>
                             <label className="block text-xs font-bold text-neutral-gray uppercase tracking-widest mb-2">Max Capacity (kg)</label>
                             <input type="number" defaultValue="200" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-neutral-dark focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
                           </div>
-                          
+
                           <div className="col-span-2 space-y-6">
                             <div>
-                               <div className="flex justify-between mb-2">
-                                 <label className="text-xs font-bold text-neutral-gray uppercase tracking-widest">Collection Threshold (Batch trigger)</label>
-                                 <span className="text-xs font-black text-neutral-dark">{sliders[bin.cKey]}%</span>
-                               </div>
-                               <input type="range" min="50" max="100" value={sliders[bin.cKey]} onChange={(e) => handleSlider(e, bin.cKey)} className={`w-full h-2 rounded-full appearance-none cursor-pointer ${
-                                  bin.color === 'primary' ? 'bg-primary/20 accent-primary' : bin.color === 'blue' ? 'bg-blue-500/20 accent-blue-500' : 'bg-gray-200 accent-neutral-dark'
-                               }`} />
+                              <div className="flex justify-between mb-2">
+                                <label className="text-xs font-bold text-neutral-gray uppercase tracking-widest">Collection Threshold (Batch trigger)</label>
+                                <span className="text-xs font-black text-neutral-dark">{sliders[bin.cKey]}%</span>
+                              </div>
+                              <input type="range" min="50" max="100" value={sliders[bin.cKey]} onChange={(e) => handleSlider(e, bin.cKey)} className={`w-full h-2 rounded-full appearance-none cursor-pointer ${bin.color === 'primary' ? 'bg-primary/20 accent-primary' : bin.color === 'blue' ? 'bg-blue-500/20 accent-blue-500' : 'bg-gray-200 accent-neutral-dark'
+                                }`} />
                             </div>
                             <div>
-                               <div className="flex justify-between mb-2">
-                                 <label className="text-xs font-bold text-neutral-gray uppercase tracking-widest">Warning Alert at</label>
-                                 <span className="text-xs font-black text-neutral-dark">{sliders[bin.wKey]}%</span>
-                               </div>
-                               <input type="range" min="30" max="90" value={sliders[bin.wKey]} onChange={(e) => handleSlider(e, bin.wKey)} className="w-full h-2 rounded-full appearance-none cursor-pointer bg-yellow-500/20 accent-yellow-500" />
+                              <div className="flex justify-between mb-2">
+                                <label className="text-xs font-bold text-neutral-gray uppercase tracking-widest">Warning Alert at</label>
+                                <span className="text-xs font-black text-neutral-dark">{sliders[bin.wKey]}%</span>
+                              </div>
+                              <input type="range" min="30" max="90" value={sliders[bin.wKey]} onChange={(e) => handleSlider(e, bin.wKey)} className="w-full h-2 rounded-full appearance-none cursor-pointer bg-yellow-500/20 accent-yellow-500" />
                             </div>
                           </div>
                         </div>
                       </div>
                     ))}
-                    
+
                     <div className="bg-primary-light/10 text-primary-dark p-4 rounded-xl flex gap-3 items-start border border-primary/20">
                       <Info className="w-5 h-5 flex-shrink-0 mt-0.5" />
                       <p className="text-sm font-bold">Changing thresholds will directly affect when batches are auto-generated and locked for pickup by your assigned organizations.</p>
@@ -2171,7 +2157,7 @@ const Dashboard = () => {
                     <h2 className="text-xl font-bold text-neutral-dark">Subscribed Organizations</h2>
                     <p className="text-sm text-neutral-gray">Organizations currently assigned to collect your waste</p>
                   </div>
-                  
+
                   <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50">
                     {[
                       { name: 'GreenSoil Fertilizers', type: 'Fertilizer Plant', waste: 'Organic Waste', since: 'Jan 2026', initial: 'GS', color: 'primary' },
@@ -2213,7 +2199,7 @@ const Dashboard = () => {
                     <h2 className="text-xl font-bold text-neutral-dark">Security Settings</h2>
                     <p className="text-sm text-neutral-gray">Manage your account security and sessions</p>
                   </div>
-                  
+
                   <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                     <h3 className="font-bold text-neutral-dark mb-6">Change Password</h3>
                     <div className="space-y-4">
@@ -2240,7 +2226,7 @@ const Dashboard = () => {
                           </button>
                         </div>
                       </div>
-                      <button 
+                      <button
                         onClick={() => showToast('Password updated successfully ✅')}
                         className="w-full md:w-auto mt-4 bg-primary hover:bg-primary-dark text-white px-8 py-3 rounded-xl font-bold text-sm transition-all active:scale-95 shadow-lg shadow-primary/20 md:hidden"
                       >
@@ -2300,7 +2286,7 @@ const Dashboard = () => {
                     <h2 className="text-xl font-bold text-neutral-dark">Society Documents</h2>
                     <p className="text-sm text-neutral-gray">Uploaded verification and certification documents</p>
                   </div>
-                  
+
                   <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50">
                     {[
                       { name: 'Society Registration Certificate', date: 'Uploaded Jan 2026', status: 'Verified ✅', bg: 'bg-green-50', color: 'text-green-700', active: true },
@@ -2358,33 +2344,33 @@ const Dashboard = () => {
       <div className="space-y-8 animate-in fade-in duration-500">
         {/* ROW 1: Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard 
-            title="Current Rank" 
-            value="A+" 
+          <StatCard
+            title="Current Rank"
+            value="A+"
             subtext="Top 15% in your city"
-            icon={Award} 
+            icon={Award}
             colorClass="bg-yellow-50 text-yellow-600"
           />
-          <StatCard 
-            title="Total Diverted" 
-            value={`${(wetTotal + dryTotal + hazardousTotal).toLocaleString()} kg`} 
+          <StatCard
+            title="Total Diverted"
+            value={`${(wetTotal + dryTotal + hazardousTotal).toLocaleString()} kg`}
             subtext="Live Total"
             trend="100%"
-            icon={Recycle} 
+            icon={Recycle}
             colorClass="bg-green-50 text-green-600"
           />
-          <StatCard 
-            title="Avg Daily Input" 
-            value={`${(((wetTotal + dryTotal + hazardousTotal) / 30) || 0).toFixed(1)} kg`} 
+          <StatCard
+            title="Avg Daily Input"
+            value={`${(((wetTotal + dryTotal + hazardousTotal) / 30) || 0).toFixed(1)} kg`}
             subtext="30-day average"
-            icon={TrendingUp} 
+            icon={TrendingUp}
             colorClass="bg-blue-50 text-blue-600"
           />
-          <StatCard 
-            title="Next Pickup" 
-            value={pickupsList.length > 0 ? (pickupsList[0].assigned_driver || 'Assigned Driver') : 'No Scheduled Pickups'} 
+          <StatCard
+            title="Next Pickup"
+            value={pickupsList.length > 0 ? (pickupsList[0].assigned_driver || 'Assigned Driver') : 'No Scheduled Pickups'}
             subtext={pickupsList.length > 0 ? `${pickupsList[0].stream_category} Stream` : 'Submit a request to schedule'}
-            icon={Clock} 
+            icon={Clock}
             colorClass="bg-orange-50 text-orange-600"
           />
         </div>
@@ -2396,7 +2382,7 @@ const Dashboard = () => {
             <span className="text-[10px] px-2 py-1 bg-gray-100 text-neutral-gray rounded-lg font-bold uppercase tracking-tight">Updated Daily</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <BinCard 
+            <BinCard
               type={organicBin.type}
               percentage={organicBin.percentage}
               total={organicBin.total}
@@ -2406,7 +2392,7 @@ const Dashboard = () => {
               status={organicBin.status}
               urgent={organicBin.urgent}
             />
-            <BinCard 
+            <BinCard
               type={recyclableBin.type}
               percentage={recyclableBin.percentage}
               total={recyclableBin.total}
@@ -2416,7 +2402,7 @@ const Dashboard = () => {
               status={recyclableBin.status}
               urgent={recyclableBin.urgent}
             />
-            <BinCard 
+            <BinCard
               type={nonRecyclableBin.type}
               percentage={nonRecyclableBin.percentage}
               total={nonRecyclableBin.total}
@@ -2467,10 +2453,9 @@ const Dashboard = () => {
                       <tr key={idx} className="border-b border-gray-50/50">
                         <td className="py-4 font-medium text-neutral-gray">{new Date(row.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
                         <td className="py-4">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                            row.stream_category === 'WET' ? 'bg-green-100 text-green-700' : 
-                            row.stream_category === 'DRY' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
-                          }`}>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${row.stream_category === 'WET' ? 'bg-green-100 text-green-700' :
+                              row.stream_category === 'DRY' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
+                            }`}>
                             {row.stream_category}
                           </span>
                         </td>
@@ -2545,14 +2530,14 @@ const Dashboard = () => {
 
           <div className="relative pt-6 pb-12">
             <div className="h-4 w-full bg-gray-100 rounded-full overflow-hidden">
-              <motion.div 
+              <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: '86%' }}
                 transition={{ duration: 1.5, ease: "easeOut" }}
                 className="h-full bg-primary relative"
               />
             </div>
-            
+
             {/* Markers */}
             {[
               { label: 'C', pts: 200, left: '20%' },
@@ -2601,7 +2586,7 @@ const Dashboard = () => {
           <div className="h-px bg-gray-100 mb-8" />
           <nav className="space-y-2">
             {navItems.map((item) => (
-              <SidebarItem 
+              <SidebarItem
                 key={item.id}
                 {...item}
                 active={activeTab === item.id}
@@ -2646,7 +2631,7 @@ const Dashboard = () => {
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-[10px] text-white flex items-center justify-center rounded-full font-bold">3</span>
               </div>
-              <button 
+              <button
                 onClick={() => setIsRequestModalOpen(true)}
                 className="hidden sm:flex items-center gap-2 bg-primary hover:bg-primary-dark text-white px-5 py-2.5 rounded-full text-sm font-bold transition-all shadow-md hover:shadow-lg active:scale-95"
               >
@@ -2671,14 +2656,14 @@ const Dashboard = () => {
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMobileMenuOpen(false)}
               className="fixed inset-0 bg-black/50 z-[60] lg:hidden"
             />
-            <motion.div 
+            <motion.div
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
@@ -2695,7 +2680,7 @@ const Dashboard = () => {
               </div>
               <nav className="space-y-2 flex-1">
                 {navItems.map((item) => (
-                  <SidebarItem 
+                  <SidebarItem
                     key={item.id}
                     {...item}
                     active={activeTab === item.id}
@@ -2733,7 +2718,7 @@ const Dashboard = () => {
           { icon: Package, label: 'Batches', id: 'Batches' },
           { icon: Truck, label: 'Trucks', id: 'Collections' },
         ].map((item) => (
-          <button 
+          <button
             key={item.id}
             onClick={() => setActiveTab(item.id)}
             className={`flex flex-col items-center gap-1 ${activeTab === item.id ? 'text-primary' : 'text-neutral-gray'}`}
@@ -2746,7 +2731,7 @@ const Dashboard = () => {
       {/* Toast Notification */}
       <AnimatePresence>
         {toast && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
@@ -2761,9 +2746,9 @@ const Dashboard = () => {
       </AnimatePresence>
       <AnimatePresence>
         {selectedBatch && (
-          <QrModal 
-            batch={selectedBatch} 
-            onClose={() => setSelectedBatch(null)} 
+          <QrModal
+            batch={selectedBatch}
+            onClose={() => setSelectedBatch(null)}
           />
         )}
       </AnimatePresence>
@@ -2797,8 +2782,8 @@ const Dashboard = () => {
                 <div className="flex justify-between text-sm"><span className="text-neutral-gray">Destination Partner</span><span className="font-bold text-primary">{selectedBinDetails.destination}</span></div>
               </div>
               <div className="mb-6">
-                 <p className="text-[10px] text-neutral-gray uppercase font-bold tracking-widest mb-3 flex items-center gap-2"><History className="w-3 h-3" /> 7-Day Fill History</p>
-                 <MiniBarChart data={selectedBinDetails.history} color={selectedBinDetails.color} />
+                <p className="text-[10px] text-neutral-gray uppercase font-bold tracking-widest mb-3 flex items-center gap-2"><History className="w-3 h-3" /> 7-Day Fill History</p>
+                <MiniBarChart data={selectedBinDetails.history} color={selectedBinDetails.color} />
               </div>
               <button onClick={() => setSelectedBinDetails(null)} className="w-full bg-gray-100 hover:bg-gray-200 text-neutral-dark py-3 rounded-xl font-bold text-sm transition-all active:scale-95">Close</button>
             </motion.div>
@@ -2807,7 +2792,7 @@ const Dashboard = () => {
       </AnimatePresence>
       <AnimatePresence>
         {isRequestModalOpen && (
-          <RequestPickupModal 
+          <RequestPickupModal
             onClose={() => setIsRequestModalOpen(false)}
             onSubmit={() => {
               setIsRequestModalOpen(false);
@@ -2819,7 +2804,7 @@ const Dashboard = () => {
       </AnimatePresence>
       <AnimatePresence>
         {isTrackModalOpen && (
-          <TrackPickupModal 
+          <TrackPickupModal
             batchId="2024-090"
             onClose={() => setIsTrackModalOpen(false)}
           />
@@ -2827,7 +2812,7 @@ const Dashboard = () => {
       </AnimatePresence>
       <AnimatePresence>
         {isManualBatchModalOpen && (
-          <ManualBatchModal 
+          <ManualBatchModal
             onClose={() => setIsManualBatchModalOpen(false)}
             onCreate={(data) => {
               const newBatch = {
@@ -2843,7 +2828,7 @@ const Dashboard = () => {
                 urgent: data.type === 'Non-Recyclable' || data.reason === 'Emergency Overflow'
               };
               setActiveBatches([newBatch, ...activeBatches]);
-              
+
               const newHistoryRow = {
                 id: newBatch.id,
                 type: data.type,
@@ -2853,7 +2838,7 @@ const Dashboard = () => {
                 status: 'Pending'
               };
               setBatchHistory([newHistoryRow, ...batchHistory]);
-              
+
               setIsManualBatchModalOpen(false);
               showToast("Batch created manually ✅ — Logged for technical review");
             }}

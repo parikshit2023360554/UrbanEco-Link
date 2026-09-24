@@ -4,17 +4,17 @@ import pickupService from '../services/pickupService';
 import batchService from '../services/batchService';
 import authService from '../services/authService';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Truck, 
-  QrCode, 
-  CheckCircle2, 
-  AlertCircle, 
-  Loader2, 
-  LogOut, 
-  RefreshCw, 
-  Package, 
-  MapPin, 
-  Clock, 
+import {
+  Truck,
+  QrCode,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  LogOut,
+  RefreshCw,
+  Package,
+  MapPin,
+  Clock,
   ArrowRight,
   Shield,
   ScanLine,
@@ -40,7 +40,7 @@ import {
 
 // --- Stat Card Component matching main Dashboard layout ---
 const StatCard = ({ title, value, subtext, trend, icon: Icon, colorClass }) => (
-  <motion.div 
+  <motion.div
     whileHover={{ y: -4 }}
     transition={{ duration: 0.2 }}
     className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between"
@@ -235,7 +235,7 @@ const DeliveryPartnerDashboard = () => {
               <p className="text-sm font-medium text-neutral-gray">Real-time route tracking, QR verification and logistics dispatch status</p>
             </div>
             <div className="flex items-center gap-3">
-              <button 
+              <button
                 onClick={fetchPickups}
                 className="px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-neutral-dark rounded-xl font-bold text-xs flex items-center gap-2 shadow-sm transition-all active:scale-95"
               >
@@ -315,8 +315,8 @@ const DeliveryPartnerDashboard = () => {
                         <p className="font-bold text-neutral-dark truncate max-w-[130px]">{p.society_name || 'Society Drop'}</p>
                         <p className="text-[10px] text-neutral-gray">{p.stream_category} • {p.estimated_weight_kg} kg</p>
                       </div>
-                      <button 
-                        onClick={() => handleScanSubmit(null, p.qr_code_token)} 
+                      <button
+                        onClick={() => handleScanSubmit(null, p.qr_code_token)}
                         className="px-2.5 py-1 bg-emerald-600 text-white font-bold rounded-lg text-[10px] hover:bg-emerald-700 transition-colors"
                       >
                         Scan QR
@@ -346,7 +346,7 @@ const DeliveryPartnerDashboard = () => {
               <h1 className="text-2xl font-black text-neutral-dark">Active Pickup Inventory</h1>
               <p className="text-sm font-medium text-neutral-gray">Live society waste drops assigned to your delivery vehicle</p>
             </div>
-            <button 
+            <button
               onClick={fetchPickups}
               className="px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-neutral-dark rounded-xl font-bold text-xs flex items-center gap-2 shadow-sm transition-all active:scale-95"
             >
@@ -359,7 +359,7 @@ const DeliveryPartnerDashboard = () => {
           <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="relative w-full md:w-80">
               <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-neutral-gray" />
-              <input 
+              <input
                 type="text"
                 placeholder="Search by Society or QR Token..."
                 value={searchQuery}
@@ -405,9 +405,9 @@ const DeliveryPartnerDashboard = () => {
               const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(p.qr_code_token || 'URBANECO-BATCH')}`;
 
               return (
-                <motion.div 
-                  key={p.id} 
-                  whileHover={{ y: -3 }} 
+                <motion.div
+                  key={p.id}
+                  whileHover={{ y: -3 }}
                   className="bg-white p-6 rounded-3xl border border-gray-100 hover:border-green-300 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between gap-5 relative overflow-hidden"
                 >
                   <div>
@@ -424,9 +424,8 @@ const DeliveryPartnerDashboard = () => {
                         </div>
                       </div>
 
-                      <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border ${
-                        isCompleted ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : isOutForDelivery ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}>
+                      <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border ${isCompleted ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : isOutForDelivery ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
                         {p.status}
                       </span>
                     </div>
@@ -438,9 +437,8 @@ const DeliveryPartnerDashboard = () => {
                           <span className="truncate">{p.pickup_address || 'Delhi NCT Zone 4'}</span>
                         </div>
                         <div className="flex items-center gap-2 pt-1">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                            p.stream_category === 'WET' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
-                          }`}>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${p.stream_category === 'WET' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
+                            }`}>
                             {p.stream_category}
                           </span>
                           <span className="font-black text-primary text-xs">{p.estimated_weight_kg} kg</span>
@@ -464,8 +462,8 @@ const DeliveryPartnerDashboard = () => {
                       <span>In-Transit to Factory</span>
                     </button>
                   ) : (
-                    <button 
-                      onClick={() => handleScanSubmit(null, p.qr_code_token)} 
+                    <button
+                      onClick={() => handleScanSubmit(null, p.qr_code_token)}
                       className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-xs shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 active:scale-95"
                     >
                       <ScanLine className="w-4 h-4" />
@@ -650,7 +648,7 @@ const DeliveryPartnerDashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-xs font-bold text-neutral-dark uppercase tracking-wider mb-2">Driver Name</label>
-                <input 
+                <input
                   type="text"
                   required
                   value={driverSettings.driver_name}
@@ -661,7 +659,7 @@ const DeliveryPartnerDashboard = () => {
 
               <div>
                 <label className="block text-xs font-bold text-neutral-dark uppercase tracking-wider mb-2">Contact Phone</label>
-                <input 
+                <input
                   type="text"
                   required
                   value={driverSettings.phone_number}
@@ -685,7 +683,7 @@ const DeliveryPartnerDashboard = () => {
 
               <div>
                 <label className="block text-xs font-bold text-neutral-dark uppercase tracking-wider mb-2">Vehicle Registration Number</label>
-                <input 
+                <input
                   type="text"
                   required
                   value={driverSettings.vehicle_number}
@@ -696,7 +694,7 @@ const DeliveryPartnerDashboard = () => {
 
               <div>
                 <label className="block text-xs font-bold text-neutral-dark uppercase tracking-wider mb-2">Commercial Driving License</label>
-                <input 
+                <input
                   type="text"
                   required
                   value={driverSettings.license_number}
@@ -740,7 +738,7 @@ const DeliveryPartnerDashboard = () => {
       {/* Toast Notification */}
       <AnimatePresence>
         {toast && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -775,11 +773,10 @@ const DeliveryPartnerDashboard = () => {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all ${
-                    isActive 
-                      ? 'bg-primary text-white shadow-lg shadow-primary/25' 
+                  className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all ${isActive
+                      ? 'bg-primary text-white shadow-lg shadow-primary/25'
                       : 'text-neutral-gray hover:bg-gray-50 hover:text-neutral-dark'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span>{item.label}</span>
@@ -819,7 +816,7 @@ const DeliveryPartnerDashboard = () => {
           </div>
           <span className="font-black text-neutral-dark text-base">UrbanEco Delivery</span>
         </div>
-        <button 
+        <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           className="p-2 hover:bg-gray-100 rounded-xl"
         >
@@ -840,13 +837,13 @@ const DeliveryPartnerDashboard = () => {
               Vehicle: {driverSettings.vehicle_number} • Duty: {driverSettings.duty_status === 'ACTIVE_ONLINE' ? 'Active' : 'On Break'}
             </p>
           </div>
-          
+
           <div className="flex items-center gap-4">
             <div className="relative p-2.5 bg-white border border-gray-100 rounded-2xl shadow-sm hover:bg-gray-50 cursor-pointer">
               <Bell className="w-5 h-5 text-neutral-gray" />
               <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
             </div>
-            <button 
+            <button
               onClick={fetchPickups}
               className="bg-primary hover:bg-primary-dark text-white px-5 py-3 rounded-2xl font-bold text-xs transition-all shadow-lg shadow-primary/20 flex items-center gap-2 active:scale-95"
             >

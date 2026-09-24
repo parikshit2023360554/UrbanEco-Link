@@ -5,18 +5,18 @@ import batchService from '../services/batchService';
 import factoryService from '../services/factoryService';
 import authService from '../services/authService';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Factory, 
-  Truck, 
-  Scale, 
-  CheckCircle2, 
-  RefreshCw, 
-  Loader2, 
-  LogOut, 
-  Clock, 
-  AlertCircle, 
-  TrendingUp, 
-  Recycle, 
+import {
+  Factory,
+  Truck,
+  Scale,
+  CheckCircle2,
+  RefreshCw,
+  Loader2,
+  LogOut,
+  Clock,
+  AlertCircle,
+  TrendingUp,
+  Recycle,
   Box,
   Layers,
   ArrowUpRight,
@@ -42,7 +42,7 @@ import {
 
 // --- Stat Card Component matching Society Dashboard ---
 const StatCard = ({ title, value, subtext, trend, icon: Icon, colorClass }) => (
-  <motion.div 
+  <motion.div
     whileHover={{ y: -4 }}
     transition={{ duration: 0.2 }}
     className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between"
@@ -80,14 +80,14 @@ const ConfirmDeliveryModal = ({ shipment, onClose, onConfirm, processing }) => {
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
       onClick={onClose}
     >
-      <motion.div 
+      <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
@@ -137,8 +137,8 @@ const ConfirmDeliveryModal = ({ shipment, onClose, onConfirm, processing }) => {
               Weighbridge Net Measured Weight (kg)
             </label>
             <div className="relative">
-              <input 
-                type="number" 
+              <input
+                type="number"
                 step="0.1"
                 required
                 value={measuredWeight}
@@ -155,7 +155,7 @@ const ConfirmDeliveryModal = ({ shipment, onClose, onConfirm, processing }) => {
             <label className="block text-xs font-bold text-neutral-gray uppercase tracking-widest mb-2">
               Waste Quality Grade
             </label>
-            <select 
+            <select
               value={qualityGrade}
               onChange={e => setQualityGrade(e.target.value)}
               className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3.5 text-sm font-bold text-neutral-dark focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
@@ -170,7 +170,7 @@ const ConfirmDeliveryModal = ({ shipment, onClose, onConfirm, processing }) => {
             <label className="block text-xs font-bold text-neutral-gray uppercase tracking-widest mb-2">
               Intake Notes (Optional)
             </label>
-            <textarea 
+            <textarea
               rows="2"
               value={notes}
               onChange={e => setNotes(e.target.value)}
@@ -180,14 +180,14 @@ const ConfirmDeliveryModal = ({ shipment, onClose, onConfirm, processing }) => {
           </div>
 
           <div className="grid grid-cols-2 gap-4 pt-2">
-            <button 
+            <button
               type="button"
-              onClick={onClose} 
+              onClick={onClose}
               className="border border-gray-200 hover:bg-gray-50 text-neutral-dark py-3.5 rounded-xl font-bold text-sm transition-all active:scale-95"
             >
               Cancel
             </button>
-            <button 
+            <button
               type="submit"
               disabled={processing}
               className="bg-green-600 hover:bg-green-700 text-white py-3.5 rounded-xl font-bold text-sm transition-all shadow-lg shadow-green-600/20 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
@@ -219,14 +219,14 @@ const ViewQrModal = ({ shipment, onClose, onDownload }) => {
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(qrToken)}`;
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
       onClick={onClose}
     >
-      <motion.div 
+      <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
@@ -251,8 +251,8 @@ const ViewQrModal = ({ shipment, onClose, onDownload }) => {
         {/* QR Code Container */}
         <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 mb-6 flex flex-col items-center justify-center">
           <div className="p-3 bg-white rounded-2xl shadow-md border border-gray-200 mb-3">
-            <img 
-              src={qrImageUrl} 
+            <img
+              src={qrImageUrl}
               alt={`QR Code for ${qrToken}`}
               className="w-48 h-48 object-contain rounded-xl"
             />
@@ -272,14 +272,14 @@ const ViewQrModal = ({ shipment, onClose, onDownload }) => {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <button 
-            onClick={onDownload} 
+          <button
+            onClick={onDownload}
             className="flex items-center justify-center gap-2 border border-primary text-primary hover:bg-primary/5 py-3.5 rounded-xl font-bold text-sm transition-all active:scale-95"
           >
             <Download className="w-4 h-4" /> Download QR
           </button>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="bg-gray-100 hover:bg-gray-200 text-neutral-dark py-3.5 rounded-xl font-bold text-sm transition-all active:scale-95"
           >
             Close
@@ -492,7 +492,7 @@ const FactoryDashboard = () => {
               <p className="text-sm font-medium text-neutral-gray">Live processing throughput, telemetry metrics and facility capacity usage</p>
             </div>
             <div className="flex items-center gap-3">
-              <button 
+              <button
                 onClick={fetchIncomingPickups}
                 className="px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-neutral-dark rounded-xl font-bold text-xs flex items-center gap-2 shadow-sm transition-all active:scale-95"
               >
@@ -617,7 +617,7 @@ const FactoryDashboard = () => {
               <p className="text-sm font-medium text-neutral-gray">View QR code tokens, manifest details, origin societies and weighbridge intake</p>
             </div>
             <div className="flex items-center gap-3">
-              <button 
+              <button
                 onClick={fetchIncomingPickups}
                 className="px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-neutral-dark rounded-xl font-bold text-xs flex items-center gap-2 shadow-sm transition-all active:scale-95"
               >
@@ -631,7 +631,7 @@ const FactoryDashboard = () => {
           <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="relative w-full md:w-80">
               <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-neutral-gray" />
-              <input 
+              <input
                 type="text"
                 placeholder="Search by Society, Driver or QR Token..."
                 value={searchQuery}
@@ -685,7 +685,7 @@ const FactoryDashboard = () => {
                 <Truck className="w-12 h-12 text-neutral-gray/40 mx-auto mb-3" />
                 <h3 className="font-bold text-neutral-dark text-lg mb-1">No matching incoming shipments found</h3>
                 <p className="text-xs text-neutral-gray max-w-md mx-auto">
-                  {searchQuery || categoryFilter !== 'ALL' || statusFilter !== 'ALL' 
+                  {searchQuery || categoryFilter !== 'ALL' || statusFilter !== 'ALL'
                     ? 'Try adjusting your search query or filter options to see scheduled drops.'
                     : 'New society waste drops will appear here automatically when assigned by the dispatch engine.'}
                 </p>
@@ -700,9 +700,9 @@ const FactoryDashboard = () => {
                   const streamCategory = pickup.stream_category || pickup.waste_category || 'DRY';
 
                   return (
-                    <motion.div 
-                      key={pickup.id || pickup.allocation_id} 
-                      whileHover={{ y: -3 }} 
+                    <motion.div
+                      key={pickup.id || pickup.allocation_id}
+                      whileHover={{ y: -3 }}
                       className="bg-white p-7 rounded-3xl border border-gray-100 hover:border-green-300 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between gap-6 relative overflow-hidden"
                     >
                       {/* Top Header Row matching Society Batch Card */}
@@ -721,13 +721,12 @@ const FactoryDashboard = () => {
                           </div>
                         </div>
 
-                        <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border ${
-                          isDelivered 
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                        <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border ${isDelivered
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                             : statusVal === 'IN_TRANSIT'
-                            ? 'bg-amber-50 text-amber-700 border-amber-200'
-                            : 'bg-blue-50 text-blue-700 border-blue-200'
-                        }`}>
+                              ? 'bg-amber-50 text-amber-700 border-amber-200'
+                              : 'bg-blue-50 text-blue-700 border-blue-200'
+                          }`}>
                           {statusVal}
                         </span>
                       </div>
@@ -747,11 +746,10 @@ const FactoryDashboard = () => {
                             <Truck className="w-4 h-4 text-neutral-gray shrink-0" />
                             <span>Driver: <strong className="font-bold text-neutral-dark">{pickup.driver_name || pickup.assigned_driver || 'Logistics Driver'}</strong></span>
                           </div>
-                          
+
                           <div className="pt-2 flex items-center gap-3">
-                            <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                              streamCategory === 'WET' ? 'bg-amber-100 text-amber-800' : streamCategory === 'DRY' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                            }`}>
+                            <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${streamCategory === 'WET' ? 'bg-amber-100 text-amber-800' : streamCategory === 'DRY' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                              }`}>
                               {streamCategory} Stream
                             </span>
                             <span className="text-sm font-black text-primary bg-white px-3 py-1 rounded-md border border-gray-200 shadow-xs">
@@ -761,13 +759,13 @@ const FactoryDashboard = () => {
                         </div>
 
                         {/* Interactive QR Code Thumbnail matching Society view */}
-                        <div 
+                        <div
                           onClick={() => setViewingQrShipment(pickup)}
                           className="group relative bg-white p-2.5 rounded-xl border border-gray-200 flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-all shadow-xs"
                           title="Click to expand QR Manifest"
                         >
-                          <img 
-                            src={qrImg} 
+                          <img
+                            src={qrImg}
                             alt="Shipment QR"
                             className="w-24 h-24 object-contain rounded-lg group-hover:scale-105 transition-transform"
                           />
@@ -794,8 +792,8 @@ const FactoryDashboard = () => {
                             <span>Intake Verified ✅</span>
                           </button>
                         ) : (
-                          <button 
-                            onClick={() => setSelectedShipment(pickup)} 
+                          <button
+                            onClick={() => setSelectedShipment(pickup)}
                             className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold text-xs shadow-md shadow-green-600/20 transition-all flex items-center justify-center gap-2 active:scale-95"
                           >
                             <CheckCircle2 className="w-4 h-4" />
@@ -1025,7 +1023,7 @@ const FactoryDashboard = () => {
       {/* Toast Notification */}
       <AnimatePresence>
         {toast && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -1060,11 +1058,10 @@ const FactoryDashboard = () => {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all ${
-                    isActive 
-                      ? 'bg-primary text-white shadow-lg shadow-primary/25' 
+                  className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all ${isActive
+                      ? 'bg-primary text-white shadow-lg shadow-primary/25'
                       : 'text-neutral-gray hover:bg-gray-50 hover:text-neutral-dark'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span>{item.label}</span>
@@ -1104,7 +1101,7 @@ const FactoryDashboard = () => {
           </div>
           <span className="font-black text-neutral-dark text-base">UrbanEco-Link</span>
         </div>
-        <button 
+        <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           className="p-2 hover:bg-gray-100 rounded-xl"
         >
@@ -1125,13 +1122,13 @@ const FactoryDashboard = () => {
               Today is {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
             </p>
           </div>
-          
+
           <div className="flex items-center gap-4">
             <div className="relative p-2.5 bg-white border border-gray-100 rounded-2xl shadow-sm hover:bg-gray-50 cursor-pointer">
               <Bell className="w-5 h-5 text-neutral-gray" />
               <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
             </div>
-            <button 
+            <button
               onClick={fetchIncomingPickups}
               className="bg-primary hover:bg-primary-dark text-white px-5 py-3 rounded-2xl font-bold text-xs transition-all shadow-lg shadow-primary/20 flex items-center gap-2 active:scale-95"
             >
@@ -1154,7 +1151,7 @@ const FactoryDashboard = () => {
       {/* Confirm Delivery Modal */}
       <AnimatePresence>
         {selectedShipment && (
-          <ConfirmDeliveryModal 
+          <ConfirmDeliveryModal
             shipment={selectedShipment}
             onClose={() => setSelectedShipment(null)}
             onConfirm={handleConfirmDelivery}
