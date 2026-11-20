@@ -15,8 +15,8 @@ import batchRoutes from './routes/batch.routes.js';
 import factoryRoutes from './routes/factory.routes.js';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware.js';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables (override process.env with updated .env)
+dotenv.config({ override: true });
 
 // Initialize Express Application
 const app = express();
